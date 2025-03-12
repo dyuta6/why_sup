@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "544309714333",
+    "project_id": "whysup-c9f96",
+    "storage_bucket": "whysup-c9f96.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:544309714333:android:f78fcc41c169f9bbd4e374",
+        "android_client_info": {
+          "package_name": "com.example.why_sup"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1tfytT3jNpUV0_VaxrAcMysqy1Ibn2sA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
