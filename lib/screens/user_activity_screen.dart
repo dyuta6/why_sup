@@ -9,6 +9,7 @@ import 'dart:ui';
 import 'login_screen.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'user_profile_screen.dart';
 
 class UserActivityScreen extends StatefulWidget {
@@ -31,6 +32,7 @@ class _UserActivityScreenState extends State<UserActivityScreen>
   String? _profileImage;
   static const platform = MethodChannel('com.example.why_sup/usage_stats');
   bool _hasShownPermissionDialog = false;
+  bool _profileVisibilityEnabled = true;
 
   @override
   void initState() {
@@ -39,6 +41,7 @@ class _UserActivityScreenState extends State<UserActivityScreen>
     _initStreams();
     _loadFollowingUsers();
     _loadUserNickname();
+    _loadProfileVisibility();
 
     // Sayfa yüklendiğinde hemen izin kontrolü yap
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -140,6 +143,47 @@ class _UserActivityScreenState extends State<UserActivityScreen>
 
     // Stream'i güncelle
     _loadFollowingUsers();
+  }
+
+  void _toggleProfileVisibility(bool value) async {
+    setState(() {
+      _profileVisibilityEnabled = value;
+    });
+
+    // Profil görünürlük durumunu Firebase'e kaydet
+    if (_auth.currentUser != null) {
+      try {
+        await _firestore
+            .collection('users')
+            .doc(_auth.currentUser!.uid)
+            .update({
+          'gorunurluk': value,
+        });
+
+        // Kullanıcıya bilgi ver
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_profileVisibilityEnabled
+                  ? 'Profiliniz herkese açık'
+                  : 'Profiliniz gizli'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        print('Profil görünürlüğü güncellenirken hata: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content:
+                  Text('Profil görünürlüğü güncellenirken bir hata oluştu'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -335,6 +379,8 @@ class _UserActivityScreenState extends State<UserActivityScreen>
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -360,7 +406,7 @@ class _UserActivityScreenState extends State<UserActivityScreen>
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      _userNickname ?? 'Yükleniyor...',
+                      _userNickname ?? localizations.welcome,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -369,8 +415,8 @@ class _UserActivityScreenState extends State<UserActivityScreen>
                     const SizedBox(height: 5),
                     Text(
                       _auth.currentUser?.isAnonymous ?? false
-                          ? 'Anonim Kullanıcı'
-                          : 'Telefon ile Giriş Yapıldı',
+                          ? localizations.anonymousLoginTitle
+                          : localizations.phoneLoginTitle,
                       style: const TextStyle(fontSize: 14),
                     ),
                   ],
@@ -378,25 +424,44 @@ class _UserActivityScreenState extends State<UserActivityScreen>
               ),
               ListTile(
                 leading: const Icon(Icons.person_outline),
-                title: const Text('Profil'),
+                title: Text(localizations.profile),
                 onTap: () {
-                  // Profil sayfasına yönlendirme eklenecek
-                  Navigator.pop(context);
+                  // Profil sayfasına yönlendirme
+                  Navigator.pop(context); // Drawer'ı kapat
+
+                  if (_auth.currentUser != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => UserProfileScreen(
+                          userId: _auth.currentUser!.uid,
+                          username: _userNickname ?? localizations.welcome,
+                          isFollowing: false, // Kendimizi takip edemeyiz
+                          onToggleFollow: _toggleFollow,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.settings),
-                title: const Text('Ayarlar'),
+                leading: const Icon(Icons.visibility),
+                title: Text(localizations.profileVisibility),
+                trailing: Switch(
+                  value: _profileVisibilityEnabled,
+                  onChanged: _toggleProfileVisibility,
+                  activeColor: Theme.of(context).colorScheme.primary,
+                ),
                 onTap: () {
-                  // Ayarlar sayfasına yönlendirme eklenecek
-                  Navigator.pop(context);
+                  // ListTile'a tıklandığında da switch'i değiştir
+                  _toggleProfileVisibility(!_profileVisibilityEnabled);
                 },
               ),
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text('Çıkış Yap',
-                    style: TextStyle(color: Colors.red)),
+                title: Text(localizations.logoutButton,
+                    style: const TextStyle(color: Colors.red)),
                 onTap: () async {
                   await _logout();
                 },
@@ -411,13 +476,13 @@ class _UserActivityScreenState extends State<UserActivityScreen>
               onPressed: () => Scaffold.of(context).openDrawer(),
             ),
           ),
-          title: const Text('WhySup'),
+          title: Text(localizations.appTitle),
           centerTitle: true,
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          bottom: const TabBar(
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'Herkes'),
-              Tab(text: 'Takip Ettiklerim'),
+              Tab(text: localizations.allActivities),
+              Tab(text: localizations.followingActivities),
             ],
           ),
           actions: [
@@ -444,6 +509,8 @@ class _UserActivityScreenState extends State<UserActivityScreen>
   }
 
   Widget _buildActivityList(Stream<QuerySnapshot>? stream) {
+    final localizations = AppLocalizations.of(context)!;
+
     return StreamBuilder<QuerySnapshot>(
       stream: stream,
       builder: (context, snapshot) {
@@ -461,59 +528,140 @@ class _UserActivityScreenState extends State<UserActivityScreen>
         // Kendi uygulamamızın paket adı - bu gözükmeyecek
         const String ourAppPackage = "com.example.why_sup";
 
-        for (var doc in snapshot.data!.docs) {
-          final data = doc.data() as Map<String, dynamic>;
-          final userId = data['userId'] as String;
-          final timestamp = data['startTime'] as Timestamp?;
-          final packageName = data['packageName'] as String? ?? '';
+        // Mevcut kullanıcının ID'si - kendi aktivitelerimizi filtrelemek için
+        final String? currentUserId = _auth.currentUser?.uid;
 
-          // Kendi uygulamamızı filtreleme
-          if (packageName == ourAppPackage) {
-            continue; // Bu aktiviteyi atla
-          }
+        // Gösterilecek aktiviteleri işle
+        return FutureBuilder<Map<String, bool>>(
+          future: _getUserVisibilityMap(snapshot.data!.docs),
+          builder: (context, visibilitySnapshot) {
+            // Görünürlük verisi henüz yüklenmemişse
+            if (!visibilitySnapshot.hasData ||
+                visibilitySnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          // Eğer bu kullanıcının aktivitesi daha önce eklenmemişse veya
-          // bu aktivite daha yeniyse, map'i güncelle
-          if (!latestActivities.containsKey(userId) ||
-              (timestamp != null &&
-                  timestamp
-                      .toDate()
-                      .isAfter(latestActivities[userId]!.startTime))) {
-            latestActivities[userId] = ActivityItem(
-              username: data['username'] ?? 'Anonim',
-              appName: data['appName'] ?? 'Bilinmeyen Uygulama',
-              packageName: packageName,
-              startTime: timestamp?.toDate() ?? DateTime.now(),
-              userId: userId,
-            );
-          }
-        }
+            final visibilityMap = visibilitySnapshot.data!;
+            final List<ActivityItem> visibleActivities = [];
 
-        // Map'teki değerleri listeye çevir ve zamanına göre sırala
-        final activities = latestActivities.values.toList()
-          ..sort((a, b) => b.startTime.compareTo(a.startTime));
+            for (var doc in snapshot.data!.docs) {
+              final data = doc.data() as Map<String, dynamic>;
+              final userId = data['userId'] as String;
+              final timestamp = data['startTime'] as Timestamp?;
+              final packageName = data['packageName'] as String? ?? '';
 
-        if (activities.isEmpty) {
-          return const Center(
-            child: Text('Henüz hiç aktivite paylaşılmamış'),
-          );
-        }
+              // Kendi uygulamamızı veya kendi aktivitelerimizi filtreleme
+              if (packageName == ourAppPackage || userId == currentUserId) {
+                continue; // Bu aktiviteyi atla
+              }
 
-        return ListView.builder(
-          itemCount: activities.length,
-          itemBuilder: (context, index) {
-            final activity = activities[index];
-            final isFollowing = _followingUsers.contains(activity.userId);
+              // Kullanıcının görünürlük durumunu kontrol et
+              final isVisible =
+                  visibilityMap[userId] ?? true; // Varsayılan olarak görünür
+              if (!isVisible) {
+                continue; // Görünürlüğü kapalı olan kullanıcıları atla
+              }
 
-            return ActivityCard(
-              activity: activity,
-              isFollowing: isFollowing,
-              onToggleFollow: _toggleFollow,
+              // Eğer bu kullanıcının aktivitesi daha önce eklenmemişse veya
+              // bu aktivite daha yeniyse, map'i güncelle
+              if (!latestActivities.containsKey(userId) ||
+                  (timestamp != null &&
+                      timestamp
+                          .toDate()
+                          .isAfter(latestActivities[userId]!.startTime))) {
+                latestActivities[userId] = ActivityItem(
+                  username: data['username'] ?? 'Anonim',
+                  appName: data['appName'] ?? 'Bilinmeyen Uygulama',
+                  packageName: packageName,
+                  startTime: timestamp?.toDate() ?? DateTime.now(),
+                  userId: userId,
+                );
+              }
+            }
+
+            // Map'teki değerleri listeye çevir ve zamanına göre sırala
+            final activities = latestActivities.values.toList()
+              ..sort((a, b) => b.startTime.compareTo(a.startTime));
+
+            if (activities.isEmpty) {
+              return Center(
+                child: Text('No activities shared yet'),
+              );
+            }
+
+            return ListView.builder(
+              itemCount: activities.length,
+              itemBuilder: (context, index) {
+                final activity = activities[index];
+                final isFollowing = _followingUsers.contains(activity.userId);
+
+                return ActivityCard(
+                  activity: activity,
+                  isFollowing: isFollowing,
+                  onToggleFollow: _toggleFollow,
+                );
+              },
             );
           },
         );
       },
     );
+  }
+
+  // Kullanıcıların görünürlük durumlarını toplu olarak sorgula
+  Future<Map<String, bool>> _getUserVisibilityMap(
+      List<QueryDocumentSnapshot> docs) async {
+    // Aktivitelerdeki tüm benzersiz kullanıcı ID'lerini topla
+    final Set<String> userIds = {};
+    for (var doc in docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final userId = data['userId'] as String;
+      userIds.add(userId);
+    }
+
+    // Her kullanıcı için görünürlük durumunu tutan map
+    Map<String, bool> visibilityMap = {};
+
+    // Kullanıcıları toplu olarak sorgula
+    for (var userId in userIds) {
+      try {
+        final userDoc = await _firestore.collection('users').doc(userId).get();
+        if (userDoc.exists) {
+          // 'gorunurluk' alanını kontrol et, varsayılan olarak true
+          final isVisible = userDoc.data()?['gorunurluk'] as bool? ?? true;
+          visibilityMap[userId] = isVisible;
+        } else {
+          // Kullanıcı bulunamadıysa varsayılan olarak görünür kabul et
+          visibilityMap[userId] = true;
+        }
+      } catch (e) {
+        print('Kullanıcı görünürlük durumu sorgulanırken hata: $e');
+        // Hata durumunda varsayılan olarak görünür kabul et
+        visibilityMap[userId] = true;
+      }
+    }
+
+    return visibilityMap;
+  }
+
+  Future<void> _loadProfileVisibility() async {
+    if (_auth.currentUser == null) return;
+
+    try {
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(_auth.currentUser!.uid)
+          .get();
+
+      if (userDoc.exists && mounted) {
+        final bool visibility = userDoc.data()?['gorunurluk'] as bool? ?? true;
+        setState(() {
+          _profileVisibilityEnabled = visibility;
+        });
+      }
+    } catch (e) {
+      print('Profil görünürlük bilgisi yüklenirken hata: $e');
+    }
   }
 }
 
@@ -613,6 +761,7 @@ class _ActivityCardState extends State<ActivityCard> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final localizations = AppLocalizations.of(context)!;
 
     // Profil resmi widget'ı
     Widget profileImageWidget = CircleAvatar(
@@ -672,9 +821,9 @@ class _ActivityCardState extends State<ActivityCard> {
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Kullanılan uygulama: ${widget.activity.appName}'),
+              Text('${localizations.startedUsing}: ${widget.activity.appName}'),
               Text(
-                '${_getTimeAgo(widget.activity.startTime)} önce',
+                _getTimeAgo(widget.activity.startTime),
                 style: const TextStyle(color: Colors.grey),
               ),
             ],
@@ -685,13 +834,17 @@ class _ActivityCardState extends State<ActivityCard> {
   }
 
   String _getTimeAgo(DateTime startTime) {
+    final localizations = AppLocalizations.of(context)!;
     final difference = DateTime.now().difference(startTime);
+
     if (difference.inMinutes < 1) {
-      return 'şimdi';
+      return localizations.justNow;
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} dakika';
+      // Dakika formatı için doğru fonksiyon çağrısı
+      return localizations.minutesAgo(difference.inMinutes);
     } else {
-      return '${difference.inHours} saat';
+      // Saat formatı için doğru fonksiyon çağrısı
+      return localizations.hoursAgo(difference.inHours);
     }
   }
 }

@@ -5,6 +5,9 @@ import 'user_profile_screen.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart';
 import 'dart:convert';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 class FollowingScreen extends StatelessWidget {
   final Stream<QuerySnapshot>? activitiesStream;
@@ -20,107 +23,362 @@ class FollowingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     if (followingUsers.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.person_outline,
-              size: 64,
-              color: Colors.grey,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Hiç kimseyi takip etmiyorsunuz',
-              style: TextStyle(
-                fontSize: 18,
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.person_outline,
+                size: 64,
                 color: Colors.grey,
               ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Diğer kullanıcıları takip etmek için "Herkes" sekmesine göz atın',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey,
+              const SizedBox(height: 16),
+              Text(
+                localizations.noFollowing,
+                style: const TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                localizations.checkAllTab,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _importContactsAndFollow(context),
+          child: const Icon(Icons.contacts),
+          tooltip: 'Rehberden takip et',
         ),
       );
     }
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: activitiesStream,
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text('Bir hata oluştu: ${snapshot.error}'));
-        }
-
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        // Kendi uygulamamızın paket adı - bu gözükmeyecek
-        const String ourAppPackage = "com.example.why_sup";
-
-        // Her kullanıcının son aktivitesini tut
-        final Map<String, ActivityItem> latestActivitiesByUser = {};
-
-        for (var doc in snapshot.data!.docs) {
-          final data = doc.data() as Map<String, dynamic>;
-          final userId = data['userId'] as String;
-          final timestamp = data['startTime'] as Timestamp?;
-          final packageName = data['packageName'] as String? ?? '';
-
-          // Kendi uygulamamızı filtreleme
-          if (packageName == ourAppPackage) {
-            continue; // Bu aktiviteyi atla
+    return Scaffold(
+      body: StreamBuilder<QuerySnapshot>(
+        stream: activitiesStream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+                child:
+                    Text('${localizations.genericError}: ${snapshot.error}'));
           }
 
-          // Eğer bu kullanıcının aktivitesi daha önce eklenmemişse veya
-          // bu aktivite daha yeniyse, map'i güncelle
-          if (!latestActivitiesByUser.containsKey(userId) ||
-              (timestamp != null &&
-                  timestamp
-                      .toDate()
-                      .isAfter(latestActivitiesByUser[userId]!.startTime))) {
-            latestActivitiesByUser[userId] = ActivityItem(
-              username: data['username'] ?? 'Anonim',
-              appName: data['appName'] ?? 'Bilinmeyen Uygulama',
-              packageName: packageName,
-              startTime: timestamp?.toDate() ?? DateTime.now(),
-              userId: userId,
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // Kendi uygulamamızın paket adı - bu gözükmeyecek
+          const String ourAppPackage = "com.example.why_sup";
+
+          // Her kullanıcının son aktivitesini tut
+          final Map<String, ActivityItem> latestActivitiesByUser = {};
+
+          for (var doc in snapshot.data!.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final userId = data['userId'] as String;
+            final timestamp = data['startTime'] as Timestamp?;
+            final packageName = data['packageName'] as String? ?? '';
+
+            // Kendi uygulamamızı filtreleme
+            if (packageName == ourAppPackage) {
+              continue; // Bu aktiviteyi atla
+            }
+
+            // Eğer bu kullanıcının aktivitesi daha önce eklenmemişse veya
+            // bu aktivite daha yeniyse, map'i güncelle
+            if (!latestActivitiesByUser.containsKey(userId) ||
+                (timestamp != null &&
+                    timestamp
+                        .toDate()
+                        .isAfter(latestActivitiesByUser[userId]!.startTime))) {
+              latestActivitiesByUser[userId] = ActivityItem(
+                username: data['username'] ?? localizations.anonymousUser,
+                appName: data['appName'] ?? localizations.unknownApp,
+                packageName: packageName,
+                startTime: timestamp?.toDate() ?? DateTime.now(),
+                userId: userId,
+              );
+            }
+          }
+
+          // Map'teki değerleri listeye çevir ve zamanına göre sırala
+          final activities = latestActivitiesByUser.values.toList()
+            ..sort((a, b) => b.startTime.compareTo(a.startTime));
+
+          if (activities.isEmpty) {
+            return Center(
+              child: Text(localizations.noActivities),
             );
           }
-        }
 
-        // Map'teki değerleri listeye çevir ve zamanına göre sırala
-        final activities = latestActivitiesByUser.values.toList()
-          ..sort((a, b) => b.startTime.compareTo(a.startTime));
+          return ListView.builder(
+            itemCount: activities.length,
+            itemBuilder: (context, index) {
+              final activity = activities[index];
+              final isFollowing = followingUsers.contains(activity.userId);
 
-        if (activities.isEmpty) {
-          return const Center(
-            child: Text('Henüz hiç aktivite paylaşılmamış'),
+              return ActivityCard(
+                activity: activity,
+                isFollowing: isFollowing,
+                onToggleFollow: onToggleFollow,
+              );
+            },
           );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _importContactsAndFollow(context),
+        child: const Icon(Icons.contacts),
+        tooltip: 'Rehberden takip et',
+      ),
+    );
+  }
+
+  // Telefon rehberindeki kişileri içe aktar ve eşleşen kullanıcıları takip et
+  Future<void> _importContactsAndFollow(BuildContext context) async {
+    final localizations = AppLocalizations.of(context)!;
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    try {
+      // Önce izin durumunu kontrol et
+      final status = await Permission.contacts.status;
+
+      // İzin daha önce reddedildiyse veya henüz istenmemişse
+      if (status.isDenied || status.isRestricted) {
+        // Açıklayıcı bir dialog göster
+        final shouldRequest = await showDialog<bool>(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => AlertDialog(
+                title: const Text('Rehber Erişimi'),
+                content: const Text(
+                    'WhySup, rehberinizden kişileri bulup otomatik olarak takip etmek için '
+                    'rehberinize erişmek istiyor. Bu sayede tanıdığınız kişileri kolayca '
+                    'bulabilir ve takip edebilirsiniz.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('İptal'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('İzin Ver'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+
+        if (!shouldRequest) {
+          return; // Kullanıcı iptal ettiyse işlemi sonlandır
         }
 
-        return ListView.builder(
-          itemCount: activities.length,
-          itemBuilder: (context, index) {
-            final activity = activities[index];
-            final isFollowing = followingUsers.contains(activity.userId);
+        // Kullanıcı dialog'dan izin vermek istediğini belirttiyse izni iste
+        final permissionResult = await Permission.contacts.request();
 
-            return ActivityCard(
-              activity: activity,
-              isFollowing: isFollowing,
-              onToggleFollow: onToggleFollow,
-            );
-          },
+        if (permissionResult.isDenied || permissionResult.isPermanentlyDenied) {
+          if (permissionResult.isPermanentlyDenied) {
+            // Kullanıcı izni kalıcı olarak reddettiyse, ayarlara yönlendir
+            final openSettings = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('İzin Gerekli'),
+                    content: const Text(
+                        'Rehber erişimi için izin vermeniz gerekiyor. İzin vermek için '
+                        'uygulama ayarlarını açmak ister misiniz?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('Hayır'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: const Text('Ayarları Aç'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ) ??
+                false;
+
+            if (openSettings) {
+              await openAppSettings();
+            }
+          }
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+                content:
+                    Text('Rehbere erişim izni olmadan kişileriniz bulunamaz')),
+          );
+          return;
+        }
+      }
+      // İzin zaten verilmiş veya yeni verilmişse
+      else if (!status.isGranted) {
+        // Son bir kez daha izni kontrol et
+        final permissionResult = await Permission.contacts.request();
+        if (!permissionResult.isGranted) {
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+                content:
+                    Text('Rehbere erişim izni olmadan kişileriniz bulunamaz')),
+          );
+          return;
+        }
+      }
+
+      // İzin alındıysa, devam et
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(content: Text('Rehberdeki kişiler alınıyor...')),
+      );
+
+      // Mevcut kullanıcı kontrolü
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId == null) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+              content: Text('Giriş yapılmış bir kullanıcı bulunamadı')),
         );
-      },
-    );
+        return;
+      }
+
+      try {
+        // Rehberdeki kişileri al (telefonları ile birlikte)
+        final contacts = await FlutterContacts.getContacts(
+          withProperties: true,
+          withPhoto: false,
+        );
+
+        if (contacts.isEmpty) {
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(content: Text('Rehberde kayıtlı kişi bulunamadı')),
+          );
+          return;
+        }
+
+        // Rehberdeki telefon numaralarını topla
+        final Set<String> contactPhoneNumbers = {};
+
+        for (var contact in contacts) {
+          for (var phone in contact.phones) {
+            if (phone.number.isNotEmpty) {
+              // Telefon numarasını normalize et
+              final normalizedNumber = _normalizePhoneNumber(phone.number);
+              if (normalizedNumber.isNotEmpty) {
+                contactPhoneNumbers.add(normalizedNumber);
+              }
+            }
+          }
+        }
+
+        if (contactPhoneNumbers.isEmpty) {
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+                content: Text('Rehberde telefon numarası bulunamadı')),
+          );
+          return;
+        }
+
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+              content: Text(
+                  '${contactPhoneNumbers.length} telefon numarası bulundu. Eşleştiriliyor...')),
+        );
+
+        // Firebase'den kullanıcıları telefon numaralarına göre sorgula
+        final usersRef = FirebaseFirestore.instance.collection('users');
+        final followingRef = FirebaseFirestore.instance
+            .collection('following')
+            .doc(currentUserId);
+
+        // Batch işlemler için sayaç
+        int followedCount = 0;
+        final List<String> userIdsToFollow = [];
+
+        // Her numarayı sorgula ve eşleşen kullanıcıları bul
+        for (final phoneNumber in contactPhoneNumbers) {
+          try {
+            final querySnapshot = await usersRef
+                .where('phoneNumber', isEqualTo: phoneNumber)
+                .limit(1)
+                .get();
+
+            if (querySnapshot.docs.isNotEmpty) {
+              final userId = querySnapshot.docs.first.id;
+
+              // Kendimizi takip etmiyoruz ve zaten takip edilenleri atlıyoruz
+              if (userId != currentUserId && !followingUsers.contains(userId)) {
+                userIdsToFollow.add(userId);
+              }
+            }
+          } catch (e) {
+            print('Telefon numarası sorgulama hatası: $e');
+          }
+        }
+
+        // Eşleşen kullanıcıları takip et
+        if (userIdsToFollow.isNotEmpty) {
+          await followingRef.set(
+              {'following': FieldValue.arrayUnion(userIdsToFollow)},
+              SetOptions(merge: true));
+
+          followedCount = userIdsToFollow.length;
+        }
+
+        // Sonucu göster
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+              content: Text(
+                  '$followedCount kişi rehberden takip listesine eklendi')),
+        );
+      } catch (e) {
+        print('Rehber okuma hatası: $e');
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text('Rehber okuma sırasında hata: $e')),
+        );
+      }
+    } catch (e) {
+      print('Rehber işlemi hatası: $e');
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Rehber işlemi sırasında hata: $e')),
+      );
+    }
+  }
+
+  // Telefon numarasını normalize etme (sadece rakamları al)
+  String _normalizePhoneNumber(String phoneNumber) {
+    // Tüm boşlukları, parantezleri, tire ve artıları kaldır
+    final digitsOnly = phoneNumber.replaceAll(RegExp(r'[\s\-\(\)\+]'), '');
+
+    // Eğer Türkiye numarası ise başındaki "0" silip "+90" ekleyebilirsin
+    if (digitsOnly.startsWith('0') && digitsOnly.length == 11) {
+      return "+90${digitsOnly.substring(1)}";
+    }
+    // Başında ülke kodu yoksa ve 10 haneliyse Türkiye numarası olarak kabul et
+    else if (digitsOnly.length == 10 && !digitsOnly.startsWith('+')) {
+      return "+90$digitsOnly";
+    }
+    // Başında "+" yoksa ekle
+    else if (!digitsOnly.startsWith('+')) {
+      return "+$digitsOnly";
+    }
+
+    return digitsOnly;
   }
 }
 
@@ -204,6 +462,7 @@ class _ActivityCardState extends State<ActivityCard> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final localizations = AppLocalizations.of(context)!;
 
     // Profil resmi widget'ı
     Widget profileImageWidget = CircleAvatar(
@@ -263,9 +522,9 @@ class _ActivityCardState extends State<ActivityCard> {
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Kullanılan uygulama: ${widget.activity.appName}'),
+              Text('${localizations.startedUsing}: ${widget.activity.appName}'),
               Text(
-                '${_getTimeAgo(widget.activity.startTime)} önce',
+                _getTimeAgo(widget.activity.startTime),
                 style: const TextStyle(color: Colors.grey),
               ),
             ],
@@ -276,13 +535,15 @@ class _ActivityCardState extends State<ActivityCard> {
   }
 
   String _getTimeAgo(DateTime startTime) {
+    final localizations = AppLocalizations.of(context)!;
     final difference = DateTime.now().difference(startTime);
+
     if (difference.inMinutes < 1) {
-      return 'şimdi';
+      return localizations.justNow;
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} dakika';
+      return localizations.minutesAgo(difference.inMinutes);
     } else {
-      return '${difference.inHours} saat';
+      return localizations.hoursAgo(difference.inHours);
     }
   }
 }

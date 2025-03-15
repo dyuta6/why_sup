@@ -1,0 +1,78 @@
+{
+  "@@locale": "tr",
+  
+  "appTitle": "WhySup",
+  "welcome": "Hoş Geldiniz",
+  
+  "phoneLoginTitle": "Telefon Numarası ile Giriş",
+  "phoneNumberLabel": "Telefon Numarası",
+  "phoneNumberHint": "5XX XXX XX XX",
+  "phoneNumberHelper": "Örnek: 5XX XXX XX XX (başında 0 olmadan)",
+  "phoneLoginButton": "Telefon ile Giriş Yap",
+  "phoneEmptyError": "Lütfen telefon numaranızı girin",
+  
+  "or": "VEYA",
+  
+  "anonymousLoginTitle": "Anonim Giriş",
+  "anonymousLoginDesc": "Telefon numarası vermeden anonim olarak giriş yapabilirsiniz.",
+  "anonymousLoginButton": "Anonim Olarak Giriş Yap",
+  
+  "smsDialogTitle": "SMS Kodunu Girin",
+  "smsCodeLabel": "SMS Kodu",
+  "cancelButton": "İptal",
+  "verifyButton": "Doğrula",
+  "smsEmptyError": "Lütfen SMS kodunu girin",
+  "verificationIdMissingError": "Doğrulama kimliği eksik. Lütfen tekrar deneyin.",
+  
+  "invalidSmsCodeError": "Geçersiz SMS kodu. Lütfen tekrar deneyin.",
+  "invalidVerificationIdError": "Geçersiz doğrulama kimliği. Lütfen tekrar telefon numaranızı girin.",
+  "genericError": "Bir hata oluştu",
+  "networkError": "İnternet bağlantınızı kontrol edin",
+  "anonymousLoginDisabledError": "Anonim giriş şu anda devre dışı",
+  "loginFailedError": "Giriş başarısız",
+  
+  "nicknameTitle": "Kullanıcı Adı Seçin",
+  "nicknameLabel": "Kullanıcı Adı",
+  "nicknameEmptyError": "Lütfen bir kullanıcı adı girin",
+  "nicknameTakenError": "Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.",
+  "nicknameSaveError": "Kullanıcı adı kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.",
+  "sessionClosedError": "Oturum açık değil. Lütfen tekrar giriş yapın.",
+  "continueButton": "Devam Et",
+  "logoutButton": "Çıkış Yap",
+  "nicknameDescription": "Diğer kullanıcıların sizi göreceği bir kullanıcı adı seçin",
+  
+  "profileImageTitle": "Profil Resmi Seçin",
+  "selectFromGallery": "Galeriden Seç",
+  "skipForNow": "Şimdilik Geç",
+  "profileImageEmptyError": "Lütfen bir profil resmi seçin",
+  "profileImageSaveError": "Profil resmi kaydedilirken bir hata oluştu",
+  "imagePickError": "Resim seçilirken bir hata oluştu: {error}",
+  
+  "permissionRequired": "İzin Gerekli",
+  "permissionDescription": "Uygulama kullanım verilerini paylaşabilmek için izin gerekiyor. Ayarlara giderek izin vermek ister misiniz?",
+  "warning": "Uyarı",
+  "permissionWarning": "Uygulama kullanım izni olmadan diğer kullanıcıların aktivitelerini göremezsiniz. İzin vermek ister misiniz?",
+  "yes": "Evet",
+  "no": "Hayır",
+  
+  "allActivities": "Tüm Aktiviteler",
+  "followingActivities": "Takip Edilenler",
+  "startedUsing": "kullanmaya başladı",
+  "minutesAgo": "{minutes} dakika önce",
+  "hoursAgo": "{hours} saat önce",
+  "justNow": "az önce",
+  "daysAgo": "{days} gün önce",
+  "followButtonText": "Takip Et",
+  "unfollowButtonText": "Takibi Bırak",
+  "startedFollowing": "takip etmeye başladı",
+  "stoppedFollowing": "takibi bıraktı",
+  
+  "noFollowing": "Hiç kimseyi takip etmiyorsunuz",
+  "checkAllTab": "Diğer kullanıcıları takip etmek için \"Tüm Aktiviteler\" sekmesine göz atın",
+  "anonymousUser": "Anonim",
+  "unknownApp": "Bilinmeyen Uygulama",
+  "noActivities": "Henüz hiç aktivite paylaşılmamış",
+  
+  "profile": "Profil",
+  "profileVisibility": "Profil Görünürlüğü"
+} 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'nickname_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -24,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (_phoneController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen telefon numaranızı girin')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.phoneEmptyError)),
       );
       return;
     }
@@ -75,7 +76,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 _isLoading = false;
               });
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Giriş yaparken hata oluştu: $e')),
+                SnackBar(
+                  content: Text(
+                    '${AppLocalizations.of(context)!.genericError}: ${e.toString()}',
+                  ),
+                ),
               );
             }
           }
@@ -87,7 +92,10 @@ class _LoginScreenState extends State<LoginScreen> {
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.message ?? 'Doğrulama başarısız')),
+            SnackBar(
+              content: Text(
+                  e.message ?? AppLocalizations.of(context)!.loginFailedError),
+            ),
           );
         },
         codeSent: (String verificationId, int? resendToken) {
@@ -115,7 +123,11 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bir hata oluştu: $e')),
+        SnackBar(
+          content: Text(
+            '${AppLocalizations.of(context)!.genericError}: ${e.toString()}',
+          ),
+        ),
       );
     }
   }
@@ -123,15 +135,17 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _verifySMSCode(String smsCode) async {
     if (_verificationId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Doğrulama kimliği eksik. Lütfen tekrar deneyin.')),
+        SnackBar(
+          content:
+              Text(AppLocalizations.of(context)!.verificationIdMissingError),
+        ),
       );
       return;
     }
 
     if (smsCode.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen SMS kodunu girin')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.smsEmptyError)),
       );
       return;
     }
@@ -163,19 +177,20 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       print('SMS doğrulama hatası: $e');
-      String errorMessage = 'SMS kodu doğrulanamadı';
+      String errorMessage = AppLocalizations.of(context)!.loginFailedError;
 
       if (e is FirebaseAuthException) {
         switch (e.code) {
           case 'invalid-verification-code':
-            errorMessage = 'Geçersiz SMS kodu. Lütfen tekrar deneyin.';
+            errorMessage = AppLocalizations.of(context)!.invalidSmsCodeError;
             break;
           case 'invalid-verification-id':
             errorMessage =
-                'Geçersiz doğrulama kimliği. Lütfen tekrar telefon numaranızı girin.';
+                AppLocalizations.of(context)!.invalidVerificationIdError;
             break;
           default:
-            errorMessage = e.message ?? 'SMS kodu doğrulanamadı';
+            errorMessage =
+                e.message ?? AppLocalizations.of(context)!.loginFailedError;
         }
       }
 
@@ -227,13 +242,15 @@ class _LoginScreenState extends State<LoginScreen> {
       String errorMessage;
       switch (e.code) {
         case 'network-request-failed':
-          errorMessage = 'İnternet bağlantınızı kontrol edin';
+          errorMessage = AppLocalizations.of(context)!.networkError;
           break;
         case 'operation-not-allowed':
-          errorMessage = 'Anonim giriş şu anda devre dışı';
+          errorMessage =
+              AppLocalizations.of(context)!.anonymousLoginDisabledError;
           break;
         default:
-          errorMessage = e.message ?? 'Giriş başarısız';
+          errorMessage =
+              e.message ?? AppLocalizations.of(context)!.loginFailedError;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -247,7 +264,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Beklenmeyen bir hata oluştu: $e'),
+          content: Text(
+            '${AppLocalizations.of(context)!.genericError}: ${e.toString()}',
+          ),
           duration: const Duration(seconds: 4),
         ),
       );
@@ -265,14 +284,15 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('SMS Kodunu Girin'),
+        backgroundColor: Theme.of(context).dialogTheme.backgroundColor,
+        title: Text(AppLocalizations.of(context)!.smsDialogTitle),
         content: TextField(
           controller: _smsController,
           keyboardType: TextInputType.number,
           maxLength: 6,
-          decoration: const InputDecoration(
-            labelText: 'SMS Kodu',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context)!.smsCodeLabel,
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
@@ -281,7 +301,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Navigator.pop(context);
               _smsController.clear();
             },
-            child: const Text('İptal'),
+            child: Text(AppLocalizations.of(context)!.cancelButton),
           ),
           TextButton(
             onPressed: () {
@@ -289,7 +309,7 @@ class _LoginScreenState extends State<LoginScreen> {
               _verifySMSCode(_smsController.text.trim());
               _smsController.clear();
             },
-            child: const Text('Doğrula'),
+            child: Text(AppLocalizations.of(context)!.verifyButton),
           ),
         ],
       ),
@@ -298,11 +318,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('WhySup'),
+        title: Text(localizations.appTitle),
         centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Colors.black,
       ),
       // SingleChildScrollView ile içeriği kaydırılabilir yap
       body: SingleChildScrollView(
@@ -315,13 +337,14 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 40),
               // Telefon numarası girişi
               Card(
+                elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      const Text(
-                        'Telefon Numarası ile Giriş',
-                        style: TextStyle(
+                      Text(
+                        localizations.phoneLoginTitle,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -329,13 +352,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 16),
                       TextField(
                         controller: _phoneController,
-                        decoration: const InputDecoration(
-                          labelText: 'Telefon Numarası',
-                          hintText: '5XX XXX XX XX',
+                        decoration: InputDecoration(
+                          labelText: localizations.phoneNumberLabel,
+                          hintText: localizations.phoneNumberHint,
                           prefixText: '+90 ',
-                          border: OutlineInputBorder(),
-                          helperText:
-                              'Örnek: 5XX XXX XX XX (başında 0 olmadan)',
+                          border: const OutlineInputBorder(),
+                          helperText: localizations.phoneNumberHelper,
                         ),
                         keyboardType: TextInputType.phone,
                       ),
@@ -344,7 +366,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _verifyPhone,
-                          child: const Text('Telefon ile Giriş Yap'),
+                          child: Text(localizations.phoneLoginButton),
                         ),
                       ),
                     ],
@@ -353,33 +375,34 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 24),
               // VEYA ayracı
-              const Row(
+              Row(
                 children: [
-                  Expanded(child: Divider()),
+                  const Expanded(child: Divider()),
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('VEYA'),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(localizations.or),
                   ),
-                  Expanded(child: Divider()),
+                  const Expanded(child: Divider()),
                 ],
               ),
               const SizedBox(height: 24),
               // Anonim giriş
               Card(
+                elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      const Text(
-                        'Anonim Giriş',
-                        style: TextStyle(
+                      Text(
+                        localizations.anonymousLoginTitle,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Telefon numarası vermeden anonim olarak giriş yapabilirsiniz.',
+                      Text(
+                        localizations.anonymousLoginDesc,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
@@ -388,11 +411,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _signInAnonymously,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey,
+                            backgroundColor: Colors.grey[700],
                           ),
-                          child: const Text(
-                            'Anonim Olarak Giriş Yap',
-                            style: TextStyle(color: Colors.white),
+                          child: Text(
+                            localizations.anonymousLoginButton,
+                            style: const TextStyle(color: Colors.white),
                           ),
                         ),
                       ),
@@ -408,7 +431,7 @@ class _LoginScreenState extends State<LoginScreen> {
               // Ekranın en altında boşluk bırak (klavye açıldığında içerik görünür kalsın)
               const SizedBox(height: 80),
             ],
-          ), 
+          ),
         ),
       ),
     );

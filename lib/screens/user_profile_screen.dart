@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart';
 import 'dart:convert';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -78,6 +79,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.username),
@@ -112,9 +115,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Text(
-                        'Tüm Aktiviteler',
-                        style: TextStyle(
+                      Text(
+                        localizations.allActivities,
+                        style: const TextStyle(
                           fontSize: 16,
                           color: Colors.grey,
                         ),
@@ -145,11 +148,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildActivitiesList() {
+    final localizations = AppLocalizations.of(context)!;
+
     return StreamBuilder<QuerySnapshot>(
       stream: _activitiesStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(child: Text('Bir hata oluştu: ${snapshot.error}'));
+          return Center(child: Text(localizations.genericError));
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -174,15 +179,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         }
 
         if (filteredActivities.isEmpty) {
-          return const Center(child: Text('Henüz hiç aktivite paylaşılmamış'));
+          return Center(child: Text('No activities shared yet'));
         }
 
         return ListView.builder(
           itemCount: filteredActivities.length,
           itemBuilder: (context, index) {
             final activityData = filteredActivities[index];
-            final appName =
-                activityData['appName'] as String? ?? 'Bilinmeyen Uygulama';
+            final appName = activityData['appName'] as String? ?? 'Unknown App';
             final packageName = activityData['packageName'] as String? ?? '';
             final timestamp = activityData['startTime'] as Timestamp?;
             final startTime = timestamp?.toDate() ?? DateTime.now();
@@ -263,6 +267,8 @@ class _ActivityItemState extends State<ActivityItem> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     Widget appIconWidget;
     if (_loading) {
       appIconWidget = const CircleAvatar(
@@ -291,7 +297,7 @@ class _ActivityItemState extends State<ActivityItem> {
         title: Text(widget.appName),
         subtitle: Text(_getFormattedDate(widget.startTime)),
         trailing: Text(
-          '${_getTimeAgo(widget.startTime)} önce',
+          _getTimeAgo(widget.startTime),
           style: const TextStyle(color: Colors.grey),
         ),
       ),
@@ -303,15 +309,17 @@ class _ActivityItemState extends State<ActivityItem> {
   }
 
   String _getTimeAgo(DateTime startTime) {
+    final localizations = AppLocalizations.of(context)!;
     final difference = DateTime.now().difference(startTime);
+
     if (difference.inMinutes < 1) {
-      return 'şimdi';
+      return localizations.justNow;
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} dakika';
+      return localizations.minutesAgo(difference.inMinutes);
     } else if (difference.inDays < 1) {
-      return '${difference.inHours} saat';
+      return localizations.hoursAgo(difference.inHours);
     } else {
-      return '${difference.inDays} gün';
+      return localizations.daysAgo(difference.inDays);
     }
   }
 }

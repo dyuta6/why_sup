@@ -1,0 +1,78 @@
+{
+  "@@locale": "en",
+  
+  "appTitle": "WhySup",
+  "welcome": "Welcome",
+  
+  "phoneLoginTitle": "Login with Phone Number",
+  "phoneNumberLabel": "Phone Number",
+  "phoneNumberHint": "5XX XXX XX XX",
+  "phoneNumberHelper": "Example: 5XX XXX XX XX (without leading 0)",
+  "phoneLoginButton": "Login with Phone",
+  "phoneEmptyError": "Please enter your phone number",
+  
+  "or": "OR",
+  
+  "anonymousLoginTitle": "Anonymous Login",
+  "anonymousLoginDesc": "You can login anonymously without providing a phone number.",
+  "anonymousLoginButton": "Login Anonymously",
+  
+  "smsDialogTitle": "Enter SMS Code",
+  "smsCodeLabel": "SMS Code",
+  "cancelButton": "Cancel",
+  "verifyButton": "Verify",
+  "smsEmptyError": "Please enter the SMS code",
+  "verificationIdMissingError": "Verification ID is missing. Please try again.",
+  
+  "invalidSmsCodeError": "Invalid SMS code. Please try again.",
+  "invalidVerificationIdError": "Invalid verification ID. Please enter your phone number again.",
+  "genericError": "An error occurred",
+  "networkError": "Please check your internet connection",
+  "anonymousLoginDisabledError": "Anonymous login is currently disabled",
+  "loginFailedError": "Login failed",
+  
+  "nicknameTitle": "Choose a Username",
+  "nicknameLabel": "Username",
+  "nicknameEmptyError": "Please enter a username",
+  "nicknameTakenError": "This username is already taken. Please choose another one.",
+  "nicknameSaveError": "An error occurred while saving the username. Please try again.",
+  "sessionClosedError": "Session is not active. Please login again.",
+  "continueButton": "Continue",
+  "logoutButton": "Logout",
+  "nicknameDescription": "Choose a username that other users will see",
+  
+  "profileImageTitle": "Choose Profile Image",
+  "selectFromGallery": "Select from Gallery",
+  "skipForNow": "Skip for Now",
+  "profileImageEmptyError": "Please select a profile image",
+  "profileImageSaveError": "An error occurred while saving the profile image",
+  "imagePickError": "An error occurred while selecting the image: {error}",
+  
+  "permissionRequired": "Permission Required",
+  "permissionDescription": "Permission is required to share app usage data. Would you like to go to settings to grant permission?",
+  "warning": "Warning",
+  "permissionWarning": "Without usage permission, you cannot see activities of other users. Would you like to grant permission?",
+  "yes": "Yes",
+  "no": "No",
+  
+  "allActivities": "All Activities",
+  "followingActivities": "Following",
+  "startedUsing": "started using",
+  "minutesAgo": "{minutes} minutes ago",
+  "hoursAgo": "{hours} hours ago",
+  "justNow": "just now",
+  "daysAgo": "{days} days ago",
+  "followButtonText": "Follow",
+  "unfollowButtonText": "Unfollow",
+  "startedFollowing": "started following",
+  "stoppedFollowing": "stopped following",
+  
+  "noFollowing": "You are not following anyone",
+  "checkAllTab": "Check the \"All Activities\" tab to follow other users",
+  "anonymousUser": "Anonymous",
+  "unknownApp": "Unknown App",
+  "noActivities": "No activities shared yet",
+  
+  "profile": "Profile",
+  "profileVisibility": "Profile Visibility"
+} 

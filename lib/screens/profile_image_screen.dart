@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'user_activity_screen.dart';
@@ -35,7 +36,9 @@ class _ProfileImageScreenState extends State<ProfileImageScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Resim seçilirken bir hata oluştu: $e')),
+          SnackBar(
+              content:
+                  Text('${AppLocalizations.of(context)!.imagePickError}: $e')),
         );
       }
     }
@@ -44,7 +47,9 @@ class _ProfileImageScreenState extends State<ProfileImageScreen> {
   Future<void> _saveProfileImage() async {
     if (_imageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen bir profil resmi seçin')),
+        SnackBar(
+            content:
+                Text(AppLocalizations.of(context)!.profileImageEmptyError)),
       );
       return;
     }
@@ -75,8 +80,8 @@ class _ProfileImageScreenState extends State<ProfileImageScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profil resmi kaydedilirken bir hata oluştu'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.profileImageSaveError),
           ),
         );
       }
@@ -91,11 +96,13 @@ class _ProfileImageScreenState extends State<ProfileImageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('WhySup'),
+        title: Text(localizations.appTitle),
         centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       ),
       body: Center(
         child: Padding(
@@ -103,9 +110,9 @@ class _ProfileImageScreenState extends State<ProfileImageScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                'Profil Resmi Seçin',
-                style: TextStyle(
+              Text(
+                localizations.profileImageTitle,
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -124,7 +131,7 @@ class _ProfileImageScreenState extends State<ProfileImageScreen> {
               ElevatedButton.icon(
                 onPressed: _isLoading ? null : _pickImage,
                 icon: const Icon(Icons.photo_library),
-                label: const Text('Galeriden Seç'),
+                label: Text(localizations.selectFromGallery),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -135,7 +142,7 @@ class _ProfileImageScreenState extends State<ProfileImageScreen> {
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Devam Et'),
+                    : Text(localizations.continueButton),
               ),
               if (_imageFile == null) ...[
                 const SizedBox(height: 20),
@@ -147,7 +154,7 @@ class _ProfileImageScreenState extends State<ProfileImageScreen> {
                       ),
                     );
                   },
-                  child: const Text('Şimdilik Geç'),
+                  child: Text(localizations.skipForNow),
                 ),
               ],
             ],

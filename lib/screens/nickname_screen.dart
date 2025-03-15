@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'user_activity_screen.dart';
 import 'profile_image_screen.dart';
 import 'login_screen.dart';
@@ -20,7 +21,8 @@ class _NicknameScreenState extends State<NicknameScreen> {
     final nickname = _nicknameController.text.trim();
     if (nickname.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen bir kullanıcı adı girin')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)!.nicknameEmptyError)),
       );
       return;
     }
@@ -39,9 +41,8 @@ class _NicknameScreenState extends State<NicknameScreen> {
       if (nicknameQuery.docs.isNotEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  'Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.'),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.nicknameTakenError),
               backgroundColor: Colors.red,
             ),
           );
@@ -91,9 +92,8 @@ class _NicknameScreenState extends State<NicknameScreen> {
           print('Firestore kayıt hatası: $firestoreError');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                    'Kullanıcı adı kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.'),
+              SnackBar(
+                content: Text(AppLocalizations.of(context)!.nicknameSaveError),
                 backgroundColor: Colors.red,
               ),
             );
@@ -102,8 +102,8 @@ class _NicknameScreenState extends State<NicknameScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Oturum açık değil. Lütfen tekrar giriş yapın.'),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.sessionClosedError),
               backgroundColor: Colors.red,
             ),
           );
@@ -113,7 +113,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Bir hata oluştu: $e'),
+            content: Text('${AppLocalizations.of(context)!.genericError}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -129,6 +129,8 @@ class _NicknameScreenState extends State<NicknameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return WillPopScope(
       onWillPop: () async {
         // Önce Firebase Auth'dan çıkış yap
@@ -147,9 +149,9 @@ class _NicknameScreenState extends State<NicknameScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('WhySup'),
+          title: Text(localizations.appTitle),
           centerTitle: true,
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
           automaticallyImplyLeading: false, // Geri butonunu gizle
         ),
         body: Center(
@@ -161,25 +163,25 @@ class _NicknameScreenState extends State<NicknameScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Hoş Geldiniz!',
-                      style: TextStyle(
+                    Text(
+                      localizations.welcome,
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Diğer kullanıcıların sizi göreceği bir kullanıcı adı seçin',
+                    Text(
+                      localizations.nicknameDescription,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
                     TextField(
                       controller: _nicknameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Kullanıcı Adı',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person),
+                      decoration: InputDecoration(
+                        labelText: localizations.nicknameLabel,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.person),
                       ),
                       maxLength: 20,
                       textCapitalization: TextCapitalization.words,
@@ -206,7 +208,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
                                     );
                                   }
                                 },
-                          child: const Text('Çıkış Yap'),
+                          child: Text(localizations.logoutButton),
                         ),
                         ElevatedButton(
                           onPressed: _isLoading ? null : _saveNickname,
@@ -218,7 +220,7 @@ class _NicknameScreenState extends State<NicknameScreen> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Text('Devam Et'),
+                              : Text(localizations.continueButton),
                         ),
                       ],
                     ),
