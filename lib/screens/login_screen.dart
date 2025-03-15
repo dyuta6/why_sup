@@ -19,6 +19,9 @@ class _LoginScreenState extends State<LoginScreen> {
   int? _resendToken;
 
   Future<void> _verifyPhone() async {
+    // Klavyeyi kapat
+    FocusScope.of(context).unfocus();
+
     if (_phoneController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Lütfen telefon numaranızı girin')),
@@ -30,33 +33,76 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
+    // Telefon numarasını E.164 formatına dönüştür
+    String phoneNumber = _phoneController.text.trim();
+
+    // Eğer numara + ile başlamıyorsa ve Türkiye numarası ise
+    if (!phoneNumber.startsWith('+')) {
+      // Numara 0 ile başlıyorsa 0'ı kaldır
+      if (phoneNumber.startsWith('0')) {
+        phoneNumber = phoneNumber.substring(1);
+      }
+      // Türkiye ülke kodunu ekle
+      phoneNumber = '+90$phoneNumber';
+    }
+
+    print('Doğrulama için kullanılacak telefon numarası: $phoneNumber');
+
     try {
       await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: '+11234567890', // Test numarası
+        phoneNumber: phoneNumber,
         timeout: const Duration(seconds: 60),
         verificationCompleted: (PhoneAuthCredential credential) async {
-          await FirebaseAuth.instance.signInWithCredential(credential);
+          // Android'de SMS otomatik doğrulandığında buraya girer
+          print('Otomatik doğrulama tamamlandı');
+          setState(() {
+            _isLoading = true;
+          });
+
+          try {
+            await FirebaseAuth.instance.signInWithCredential(credential);
+            if (mounted) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const NicknameScreen(),
+                ),
+              );
+            }
+          } catch (e) {
+            print('Otomatik doğrulama hatası: $e');
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Giriş yaparken hata oluştu: $e')),
+              );
+            }
+          }
         },
         verificationFailed: (FirebaseAuthException e) {
+          print('Doğrulama başarısız: ${e.message}');
           setState(() {
             _isLoading = false;
           });
-          print('Verification Failed: ${e.message}');
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(e.message ?? 'Doğrulama başarısız')),
           );
         },
         codeSent: (String verificationId, int? resendToken) {
+          print('SMS kodu gönderildi. VerificationId: $verificationId');
           setState(() {
             _verificationId = verificationId;
             _resendToken = resendToken;
             _isLoading = false;
           });
-          // Test için otomatik kod gösterimi
+
+          // SMS dialogunu göster
           _showSMSDialog();
-          _smsController.text = '123456'; // Test kodu
         },
         codeAutoRetrievalTimeout: (String verificationId) {
+          print('Otomatik kod alımı zaman aşımına uğradı');
           setState(() {
             _verificationId = verificationId;
             _isLoading = false;
@@ -64,6 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
         },
       );
     } catch (e) {
+      print('Phone Auth genel hata: $e');
       setState(() {
         _isLoading = false;
       });
@@ -74,18 +121,37 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _verifySMSCode(String smsCode) async {
-    if (_verificationId == null) return;
+    if (_verificationId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Doğrulama kimliği eksik. Lütfen tekrar deneyin.')),
+      );
+      return;
+    }
+
+    if (smsCode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lütfen SMS kodunu girin')),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading = true;
     });
 
     try {
+      print(
+          'SMS kodu doğrulanıyor: $smsCode için verificationId: $_verificationId');
+
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
         verificationId: _verificationId!,
         smsCode: smsCode,
       );
-      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+      print('Kullanıcı başarıyla giriş yaptı: ${userCredential.user?.uid}');
 
       if (mounted) {
         // Kullanıcı adı ekranına yönlendir
@@ -95,10 +161,29 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       }
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'SMS kodu doğrulanamadı')),
-      );
+    } catch (e) {
+      print('SMS doğrulama hatası: $e');
+      String errorMessage = 'SMS kodu doğrulanamadı';
+
+      if (e is FirebaseAuthException) {
+        switch (e.code) {
+          case 'invalid-verification-code':
+            errorMessage = 'Geçersiz SMS kodu. Lütfen tekrar deneyin.';
+            break;
+          case 'invalid-verification-id':
+            errorMessage =
+                'Geçersiz doğrulama kimliği. Lütfen tekrar telefon numaranızı girin.';
+            break;
+          default:
+            errorMessage = e.message ?? 'SMS kodu doğrulanamadı';
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -109,6 +194,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signInAnonymously() async {
+    // Klavyeyi kapat
+    FocusScope.of(context).unfocus();
+
     if (!mounted) return;
 
     setState(() {
@@ -216,12 +304,15 @@ class _LoginScreenState extends State<LoginScreen> {
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: Center(
+      // SingleChildScrollView ile içeriği kaydırılabilir yap
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Ekran yüksekliği için biraz boşluk ekle
+              const SizedBox(height: 40),
               // Telefon numarası girişi
               Card(
                 child: Padding(
@@ -240,15 +331,21 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _phoneController,
                         decoration: const InputDecoration(
                           labelText: 'Telefon Numarası',
+                          hintText: '5XX XXX XX XX',
                           prefixText: '+90 ',
                           border: OutlineInputBorder(),
+                          helperText:
+                              'Örnek: 5XX XXX XX XX (başında 0 olmadan)',
                         ),
                         keyboardType: TextInputType.phone,
                       ),
                       const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : _verifyPhone,
-                        child: const Text('Telefon ile Giriş Yap'),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _verifyPhone,
+                          child: const Text('Telefon ile Giriş Yap'),
+                        ),
                       ),
                     ],
                   ),
@@ -286,14 +383,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : _signInAnonymously,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey,
-                        ),
-                        child: const Text(
-                          'Anonim Olarak Giriş Yap',
-                          style: TextStyle(color: Colors.white),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _signInAnonymously,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey,
+                          ),
+                          child: const Text(
+                            'Anonim Olarak Giriş Yap',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ),
                     ],
@@ -302,11 +402,13 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               if (_isLoading)
                 const Padding(
-                  padding: EdgeInsets.only(top: 24),
+                  padding: EdgeInsets.only(top: 24, bottom: 24),
                   child: CircularProgressIndicator(),
                 ),
+              // Ekranın en altında boşluk bırak (klavye açıldığında içerik görünür kalsın)
+              const SizedBox(height: 80),
             ],
-          ),
+          ), 
         ),
       ),
     );
