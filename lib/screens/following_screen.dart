@@ -338,14 +338,20 @@ class FollowingScreen extends StatelessWidget {
               SetOptions(merge: true));
 
           followedCount = userIdsToFollow.length;
-        }
 
-        // Sonucu göster
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-              content: Text(
-                  '$followedCount kişi rehberden takip listesine eklendi')),
-        );
+          // Eşleşen kişi varsa sonucu göster
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+                content: Text(
+                    '$followedCount kişi rehberden takip listesine eklendi')),
+          );
+        } else {
+          // Eşleşen kişi yoksa özel mesaj göster
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+                content: Text('Rehberinizdeki hiç kimse WhySup kullanmıyor')),
+          );
+        }
       } catch (e) {
         print('Rehber okuma hatası: $e');
         scaffoldMessenger.showSnackBar(
