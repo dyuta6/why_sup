@@ -47,6 +47,13 @@
   "profileImageEmptyError": "Lütfen bir profil resmi seçin",
   "profileImageSaveError": "Profil resmi kaydedilirken bir hata oluştu",
   "imagePickError": "Resim seçilirken bir hata oluştu: {error}",
+  "@imagePickError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   
   "permissionRequired": "İzin Gerekli",
   "permissionDescription": "Uygulama kullanım verilerini paylaşabilmek için izin gerekiyor. Ayarlara giderek izin vermek ister misiniz?",
@@ -59,9 +66,30 @@
   "followingActivities": "Takip Edilenler",
   "startedUsing": "kullanmaya başladı",
   "minutesAgo": "{minutes} dakika önce",
+  "@minutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "hoursAgo": "{hours} saat önce",
+  "@hoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "justNow": "az önce",
   "daysAgo": "{days} gün önce",
+  "@daysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "followButtonText": "Takip Et",
   "unfollowButtonText": "Takibi Bırak",
   "startedFollowing": "takip etmeye başladı",
@@ -74,5 +102,52 @@
   "noActivities": "Henüz hiç aktivite paylaşılmamış",
   
   "profile": "Profil",
-  "profileVisibility": "Profil Görünürlüğü"
+  "profileVisibility": "Profil Görünürlüğü",
+  
+  "contactsTooltip": "Rehberden takip et",
+  "contactsAccessTitle": "Rehber Erişimi",
+  "contactsAccessDescription": "WhySup, rehberinizden kişileri bulup otomatik olarak takip etmek için rehberinize erişmek istiyor. Bu sayede tanıdığınız kişileri kolayca bulabilir ve takip edebilirsiniz.",
+  "cancel": "İptal",
+  "allowAccess": "İzin Ver",
+  "accessRequired": "İzin Gerekli",
+  "contactsAccessSettingsDescription": "Rehber erişimi için izin vermeniz gerekiyor. İzin vermek için uygulama ayarlarını açmak ister misiniz?",
+  "openSettings": "Ayarları Aç",
+  "contactsAccessDenied": "Rehbere erişim izni olmadan kişileriniz bulunamaz",
+  "contactsLoading": "Rehberdeki kişiler alınıyor...",
+  "userNotFound": "Giriş yapılmış bir kullanıcı bulunamadı",
+  "noContactsFound": "Rehberde kayıtlı kişi bulunamadı",
+  "noPhoneNumbersFound": "Rehberde telefon numarası bulunamadı",
+  "contactsFoundProcessing": "{count} telefon numarası bulundu. Eşleştiriliyor...",
+  "@contactsFoundProcessing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "contactsFollowed": "{count} kişi rehberden takip listesine eklendi",
+  "@contactsFollowed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noContactsUsingApp": "Rehberinizdeki hiç kimse WhySup kullanmıyor",
+  "contactsReadError": "Rehber okuma sırasında hata: {error}",
+  "@contactsReadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "contactsProcessError": "Rehber işlemi sırasında hata: {error}",
+  "@contactsProcessError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 } 

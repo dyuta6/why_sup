@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:vibration/vibration.dart';
 
 class FollowingScreen extends StatelessWidget {
   final Stream<QuerySnapshot>? activitiesStream;
@@ -58,7 +59,7 @@ class FollowingScreen extends StatelessWidget {
         floatingActionButton: FloatingActionButton(
           onPressed: () => _importContactsAndFollow(context),
           child: const Icon(Icons.contacts),
-          tooltip: 'Rehberden takip et',
+          tooltip: localizations.contactsTooltip,
         ),
       );
     }
@@ -139,7 +140,7 @@ class FollowingScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _importContactsAndFollow(context),
         child: const Icon(Icons.contacts),
-        tooltip: 'Rehberden takip et',
+        tooltip: localizations.contactsTooltip,
       ),
     );
   }
@@ -160,19 +161,16 @@ class FollowingScreen extends StatelessWidget {
               context: context,
               barrierDismissible: false,
               builder: (context) => AlertDialog(
-                title: const Text('Rehber Erişimi'),
-                content: const Text(
-                    'WhySup, rehberinizden kişileri bulup otomatik olarak takip etmek için '
-                    'rehberinize erişmek istiyor. Bu sayede tanıdığınız kişileri kolayca '
-                    'bulabilir ve takip edebilirsiniz.'),
+                title: Text(localizations.contactsAccessTitle),
+                content: Text(localizations.contactsAccessDescription),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('İptal'),
+                    child: Text(localizations.cancel),
                   ),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('İzin Ver'),
+                    child: Text(localizations.allowAccess),
                     style: TextButton.styleFrom(
                       foregroundColor: Theme.of(context).primaryColor,
                     ),
@@ -195,18 +193,17 @@ class FollowingScreen extends StatelessWidget {
             final openSettings = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('İzin Gerekli'),
-                    content: const Text(
-                        'Rehber erişimi için izin vermeniz gerekiyor. İzin vermek için '
-                        'uygulama ayarlarını açmak ister misiniz?'),
+                    title: Text(localizations.accessRequired),
+                    content:
+                        Text(localizations.contactsAccessSettingsDescription),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text('Hayır'),
+                        child: Text(localizations.no),
                       ),
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(true),
-                        child: const Text('Ayarları Aç'),
+                        child: Text(localizations.openSettings),
                         style: TextButton.styleFrom(
                           foregroundColor: Theme.of(context).primaryColor,
                         ),
@@ -221,9 +218,7 @@ class FollowingScreen extends StatelessWidget {
             }
           }
           scaffoldMessenger.showSnackBar(
-            const SnackBar(
-                content:
-                    Text('Rehbere erişim izni olmadan kişileriniz bulunamaz')),
+            SnackBar(content: Text(localizations.contactsAccessDenied)),
           );
           return;
         }
@@ -234,9 +229,7 @@ class FollowingScreen extends StatelessWidget {
         final permissionResult = await Permission.contacts.request();
         if (!permissionResult.isGranted) {
           scaffoldMessenger.showSnackBar(
-            const SnackBar(
-                content:
-                    Text('Rehbere erişim izni olmadan kişileriniz bulunamaz')),
+            SnackBar(content: Text(localizations.contactsAccessDenied)),
           );
           return;
         }
@@ -244,15 +237,14 @@ class FollowingScreen extends StatelessWidget {
 
       // İzin alındıysa, devam et
       scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('Rehberdeki kişiler alınıyor...')),
+        SnackBar(content: Text(localizations.contactsLoading)),
       );
 
       // Mevcut kullanıcı kontrolü
       final currentUserId = FirebaseAuth.instance.currentUser?.uid;
       if (currentUserId == null) {
         scaffoldMessenger.showSnackBar(
-          const SnackBar(
-              content: Text('Giriş yapılmış bir kullanıcı bulunamadı')),
+          SnackBar(content: Text(localizations.userNotFound)),
         );
         return;
       }
@@ -266,7 +258,7 @@ class FollowingScreen extends StatelessWidget {
 
         if (contacts.isEmpty) {
           scaffoldMessenger.showSnackBar(
-            const SnackBar(content: Text('Rehberde kayıtlı kişi bulunamadı')),
+            SnackBar(content: Text(localizations.noContactsFound)),
           );
           return;
         }
@@ -288,16 +280,17 @@ class FollowingScreen extends StatelessWidget {
 
         if (contactPhoneNumbers.isEmpty) {
           scaffoldMessenger.showSnackBar(
-            const SnackBar(
-                content: Text('Rehberde telefon numarası bulunamadı')),
+            SnackBar(content: Text(localizations.noPhoneNumbersFound)),
           );
           return;
         }
 
         scaffoldMessenger.showSnackBar(
           SnackBar(
-              content: Text(
-                  '${contactPhoneNumbers.length} telefon numarası bulundu. Eşleştiriliyor...')),
+            content: Text(
+              localizations.contactsFoundProcessing(contactPhoneNumbers.length),
+            ),
+          ),
         );
 
         // Firebase'den kullanıcıları telefon numaralarına göre sorgula
@@ -342,26 +335,35 @@ class FollowingScreen extends StatelessWidget {
           // Eşleşen kişi varsa sonucu göster
           scaffoldMessenger.showSnackBar(
             SnackBar(
-                content: Text(
-                    '$followedCount kişi rehberden takip listesine eklendi')),
+              content: Text(
+                localizations.contactsFollowed(followedCount),
+              ),
+            ),
           );
         } else {
           // Eşleşen kişi yoksa özel mesaj göster
           scaffoldMessenger.showSnackBar(
-            const SnackBar(
-                content: Text('Rehberinizdeki hiç kimse WhySup kullanmıyor')),
+            SnackBar(content: Text(localizations.noContactsUsingApp)),
           );
         }
       } catch (e) {
         print('Rehber okuma hatası: $e');
         scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text('Rehber okuma sırasında hata: $e')),
+          SnackBar(
+            content: Text(
+              localizations.contactsReadError(e.toString()),
+            ),
+          ),
         );
       }
     } catch (e) {
       print('Rehber işlemi hatası: $e');
       scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('Rehber işlemi sırasında hata: $e')),
+        SnackBar(
+          content: Text(
+            localizations.contactsProcessError(e.toString()),
+          ),
+        ),
       );
     }
   }

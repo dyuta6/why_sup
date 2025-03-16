@@ -4,10 +4,10 @@
   "appTitle": "WhySup",
   "welcome": "Welcome",
   
-  "phoneLoginTitle": "Login with Phone Number",
+  "phoneLoginTitle": "Phone Login",
   "phoneNumberLabel": "Phone Number",
   "phoneNumberHint": "5XX XXX XX XX",
-  "phoneNumberHelper": "Example: 5XX XXX XX XX (without leading 0)",
+  "phoneNumberHelper": "Example: 5XX XXX XX XX (without 0 at the beginning)",
   "phoneLoginButton": "Login with Phone",
   "phoneEmptyError": "Please enter your phone number",
   
@@ -27,31 +27,38 @@
   "invalidSmsCodeError": "Invalid SMS code. Please try again.",
   "invalidVerificationIdError": "Invalid verification ID. Please enter your phone number again.",
   "genericError": "An error occurred",
-  "networkError": "Please check your internet connection",
+  "networkError": "Check your internet connection",
   "anonymousLoginDisabledError": "Anonymous login is currently disabled",
   "loginFailedError": "Login failed",
   
-  "nicknameTitle": "Choose a Username",
-  "nicknameLabel": "Username",
-  "nicknameEmptyError": "Please enter a username",
-  "nicknameTakenError": "This username is already taken. Please choose another one.",
-  "nicknameSaveError": "An error occurred while saving the username. Please try again.",
+  "nicknameTitle": "Choose a Nickname",
+  "nicknameLabel": "Nickname",
+  "nicknameEmptyError": "Please enter a nickname",
+  "nicknameTakenError": "This nickname is already taken. Please choose another one.",
+  "nicknameSaveError": "An error occurred while saving the nickname. Please try again.",
   "sessionClosedError": "Session is not active. Please login again.",
   "continueButton": "Continue",
   "logoutButton": "Logout",
-  "nicknameDescription": "Choose a username that other users will see",
+  "nicknameDescription": "Choose a nickname that other users will see",
   
-  "profileImageTitle": "Choose Profile Image",
+  "profileImageTitle": "Choose a Profile Image",
   "selectFromGallery": "Select from Gallery",
   "skipForNow": "Skip for Now",
   "profileImageEmptyError": "Please select a profile image",
   "profileImageSaveError": "An error occurred while saving the profile image",
-  "imagePickError": "An error occurred while selecting the image: {error}",
+  "imagePickError": "An error occurred while picking image: {error}",
+  "@imagePickError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   
   "permissionRequired": "Permission Required",
   "permissionDescription": "Permission is required to share app usage data. Would you like to go to settings to grant permission?",
   "warning": "Warning",
-  "permissionWarning": "Without usage permission, you cannot see activities of other users. Would you like to grant permission?",
+  "permissionWarning": "Without app usage permission, you won't be able to see other users' activities. Would you like to grant permission?",
   "yes": "Yes",
   "no": "No",
   
@@ -59,9 +66,30 @@
   "followingActivities": "Following",
   "startedUsing": "started using",
   "minutesAgo": "{minutes} minutes ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "hoursAgo": "{hours} hours ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "justNow": "just now",
   "daysAgo": "{days} days ago",
+  "@daysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "followButtonText": "Follow",
   "unfollowButtonText": "Unfollow",
   "startedFollowing": "started following",
@@ -74,5 +102,52 @@
   "noActivities": "No activities shared yet",
   
   "profile": "Profile",
-  "profileVisibility": "Profile Visibility"
+  "profileVisibility": "Profile Visibility",
+  
+  "contactsTooltip": "Follow from Contacts",
+  "contactsAccessTitle": "Contacts Access",
+  "contactsAccessDescription": "WhySup wants to access your contacts to find and automatically follow people you know. This makes it easier to connect with friends who are already using the app.",
+  "cancel": "Cancel",
+  "allowAccess": "Allow Access",
+  "accessRequired": "Permission Required",
+  "contactsAccessSettingsDescription": "You need to grant contacts permission. Would you like to open app settings?",
+  "openSettings": "Open Settings",
+  "contactsAccessDenied": "Cannot find your contacts without access permission",
+  "contactsLoading": "Getting contacts from your address book...",
+  "userNotFound": "No logged in user found",
+  "noContactsFound": "No contacts found in your address book",
+  "noPhoneNumbersFound": "No phone numbers found in your contacts",
+  "contactsFoundProcessing": "Found {count} phone numbers. Matching...",
+  "@contactsFoundProcessing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "contactsFollowed": "Added {count} contacts to your following list",
+  "@contactsFollowed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noContactsUsingApp": "None of your contacts are using WhySup",
+  "contactsReadError": "Error reading contacts: {error}",
+  "@contactsReadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "contactsProcessError": "Error processing contacts: {error}",
+  "@contactsProcessError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 } 
