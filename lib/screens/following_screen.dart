@@ -285,6 +285,10 @@ class FollowingScreen extends StatelessWidget {
           return;
         }
 
+        // Rehberden çekilen tüm numaraları konsola yazdır
+        print('Rehberden çekilen tüm numaralar:');
+        print(contactPhoneNumbers.toList().join(', '));
+
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text(
@@ -313,6 +317,12 @@ class FollowingScreen extends StatelessWidget {
 
             if (querySnapshot.docs.isNotEmpty) {
               final userId = querySnapshot.docs.first.id;
+              final userData =
+                  querySnapshot.docs.first.data() as Map<String, dynamic>;
+
+              // Eşleşen numara ve kullanıcıyı yazdır
+              print(
+                  'Eşleşme bulundu: Numara=$phoneNumber, KullanıcıID=$userId, Kullanıcı=${userData['username'] ?? 'İsimsiz'}');
 
               // Kendimizi takip etmiyoruz ve zaten takip edilenleri atlıyoruz
               if (userId != currentUserId && !followingUsers.contains(userId)) {
@@ -331,6 +341,10 @@ class FollowingScreen extends StatelessWidget {
               SetOptions(merge: true));
 
           followedCount = userIdsToFollow.length;
+
+          // Takibe eklenen kullanıcıları konsola yazdır
+          print('Takibe eklenen kullanıcılar: $userIdsToFollow');
+          print('Toplam eklenen kullanıcı sayısı: $followedCount');
 
           // Eşleşen kişi varsa sonucu göster
           scaffoldMessenger.showSnackBar(
