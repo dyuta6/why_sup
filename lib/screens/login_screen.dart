@@ -61,7 +61,70 @@ class _LoginScreenState extends State<LoginScreen> {
           });
 
           try {
-            await FirebaseAuth.instance.signInWithCredential(credential);
+            final userCredential =
+                await FirebaseAuth.instance.signInWithCredential(credential);
+            print(
+                'Otomatik doğrulama: Kullanıcı başarıyla giriş yaptı: ${userCredential.user?.uid}');
+            print(
+                'Otomatik doğrulama: Kullanıcı telefon numarası: ${userCredential.user?.phoneNumber}');
+
+            // Telefon numarasını Users koleksiyonuna kaydet
+            if (userCredential.user != null) {
+              String phoneNumber = _phoneController.text.trim();
+
+              // Telefon numarasını normalize et
+              if (!phoneNumber.startsWith('+')) {
+                if (phoneNumber.startsWith('0')) {
+                  phoneNumber = phoneNumber.substring(1);
+                }
+                phoneNumber = '+90$phoneNumber';
+              }
+
+              // Eğer kontrolcüden alınan numara boşsa Firebase Auth'dan alalım
+              if (phoneNumber.isEmpty &&
+                  userCredential.user?.phoneNumber != null) {
+                phoneNumber = userCredential.user!.phoneNumber!;
+              }
+
+              print(
+                  'Otomatik doğrulama: Kaydedilecek telefon numarası: $phoneNumber');
+
+              // Users koleksiyonunu kontrol et ve gerekirse oluştur
+              final userDocRef = FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(userCredential.user!.uid);
+              final userDoc = await userDocRef.get();
+
+              if (!userDoc.exists) {
+                // Döküman yoksa oluştur
+                await userDocRef.set({
+                  'userId': userCredential.user!.uid,
+                  'phoneNumber': phoneNumber,
+                  'createdAt': FieldValue.serverTimestamp(),
+                  'isAnonymous': false,
+                  'lastUpdated': FieldValue.serverTimestamp(),
+                });
+                print(
+                    'Otomatik doğrulama: Yeni kullanıcı dökümanı oluşturuldu');
+              } else {
+                // Döküman varsa güncelle
+                await userDocRef.update({
+                  'phoneNumber': phoneNumber,
+                  'lastUpdated': FieldValue.serverTimestamp(),
+                  'isAnonymous': false,
+                });
+                print(
+                    'Otomatik doğrulama: Mevcut kullanıcı dökümanı güncellendi');
+              }
+
+              // Doğrulama için okuyalım
+              final updatedDoc = await userDocRef.get();
+              final savedPhoneNumber =
+                  updatedDoc.data()?['phoneNumber'] as String?;
+              print(
+                  'Otomatik doğrulama: Firestore\'a kaydedilen telefon numarası: $savedPhoneNumber');
+            }
+
             if (mounted) {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
@@ -166,6 +229,61 @@ class _LoginScreenState extends State<LoginScreen> {
       final userCredential =
           await FirebaseAuth.instance.signInWithCredential(credential);
       print('Kullanıcı başarıyla giriş yaptı: ${userCredential.user?.uid}');
+      print('Kullanıcı telefon numarası: ${userCredential.user?.phoneNumber}');
+
+      // Telefon numarasını Users koleksiyonuna kaydet
+      if (userCredential.user != null) {
+        String phoneNumber = _phoneController.text.trim();
+
+        // Telefon numarasını normalize et
+        if (!phoneNumber.startsWith('+')) {
+          if (phoneNumber.startsWith('0')) {
+            phoneNumber = phoneNumber.substring(1);
+          }
+          phoneNumber = '+90$phoneNumber';
+        }
+
+        // Eğer kontrolcüden alınan numara boşsa Firebase Auth'dan alalım
+        if (phoneNumber.isEmpty && userCredential.user?.phoneNumber != null) {
+          phoneNumber = userCredential.user!.phoneNumber!;
+        }
+
+        print(
+            'Kullanıcının phoneNumber alanı FirebaseAuth\'dan: ${userCredential.user?.phoneNumber}');
+        print('Kullanıcının phoneNumber alanı girilen numaradan: $phoneNumber');
+
+        // Users koleksiyonunu kontrol et ve gerekirse oluştur
+        final userDocRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user!.uid);
+        final userDoc = await userDocRef.get();
+
+        if (!userDoc.exists) {
+          // Döküman yoksa oluştur
+          await userDocRef.set({
+            'userId': userCredential.user!.uid,
+            'phoneNumber': phoneNumber,
+            'createdAt': FieldValue.serverTimestamp(),
+            'isAnonymous': false,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
+          print('Yeni kullanıcı dökümanı oluşturuldu');
+        } else {
+          // Döküman varsa güncelle
+          await userDocRef.update({
+            'phoneNumber': phoneNumber,
+            'lastUpdated': FieldValue.serverTimestamp(),
+            'isAnonymous': false,
+          });
+          print('Mevcut kullanıcı dökümanı güncellendi');
+        }
+
+        // Doğrulama için kullanıcı belgesini oku
+        final updatedDoc = await userDocRef.get();
+        final savedPhoneNumber = updatedDoc.data()?['phoneNumber'] as String?;
+        print(
+            'Firestore\'dan kontrol: Kaydedilen telefon numarası: $savedPhoneNumber');
+      }
 
       if (mounted) {
         // Kullanıcı adı ekranına yönlendir

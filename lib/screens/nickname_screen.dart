@@ -5,17 +5,75 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'user_activity_screen.dart';
 import 'profile_image_screen.dart';
 import 'login_screen.dart';
+import 'package:flutter/services.dart';
 
 class NicknameScreen extends StatefulWidget {
   const NicknameScreen({super.key});
 
   @override
-  State<NicknameScreen> createState() => _NicknameScreenState();
+  _NicknameScreenState createState() => _NicknameScreenState();
 }
 
 class _NicknameScreenState extends State<NicknameScreen> {
   final _nicknameController = TextEditingController();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPhoneNumber();
+  }
+
+  Future<void> _checkPhoneNumber() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      print('Firebase Authentication telefon numarası: ${user.phoneNumber}');
+
+      // Kullanıcının telefon numarasını Firestore'da kontrol et
+      final userDocRef =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final userDoc = await userDocRef.get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        final phoneNumber = userData?['phoneNumber'] as String?;
+        print('Firestore\'daki telefon numarası: $phoneNumber');
+
+        // Telefon numarası yoksa ve Firebase Auth'da telefon numarası varsa kaydet
+        if ((phoneNumber == null || phoneNumber.isEmpty) &&
+            user.phoneNumber != null) {
+          await userDocRef.update({
+            'phoneNumber': user.phoneNumber,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
+
+          print(
+              'Firebase Auth\'dan telefon numarası Firestore\'a kaydedildi: ${user.phoneNumber}');
+
+          // Doğrulama için tekrar oku
+          final updatedDoc = await userDocRef.get();
+          final updatedPhoneNumber =
+              updatedDoc.data()?['phoneNumber'] as String?;
+          print('Güncelleme sonrası telefon numarası: $updatedPhoneNumber');
+        }
+      } else {
+        // Kullanıcı dökümanı yoksa ve telefon numarası varsa yeni döküman oluştur
+        if (user.phoneNumber != null) {
+          await userDocRef.set({
+            'userId': user.uid,
+            'phoneNumber': user.phoneNumber,
+            'createdAt': FieldValue.serverTimestamp(),
+            'lastUpdated': FieldValue.serverTimestamp(),
+            'isAnonymous': user.isAnonymous,
+          });
+
+          print(
+              'Yeni kullanıcı dökümanı oluşturuldu, telefon: ${user.phoneNumber}');
+        }
+      }
+    }
+  }
 
   Future<void> _saveNickname() async {
     final nickname = _nicknameController.text.trim();
@@ -56,17 +114,41 @@ class _NicknameScreenState extends State<NicknameScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         try {
-          // Önce Firestore'a kaydet
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .set({
+          // Telefon numarasını al
+          String? phoneNumber = user.phoneNumber;
+          print('Nickname kaydedilirken telefon numarası: $phoneNumber');
+
+          // Firestore'a kaydet
+          final userDocRef =
+              FirebaseFirestore.instance.collection('users').doc(user.uid);
+          final userDoc = await userDocRef.get();
+
+          Map<String, dynamic> userData = {
             'nickname': nickname,
-            'createdAt': FieldValue.serverTimestamp(),
             'userId': user.uid,
             'isAnonymous': user.isAnonymous,
             'lastUpdated': FieldValue.serverTimestamp(),
-          });
+          };
+
+          // Telefon numarasını ekle (eğer varsa)
+          if (phoneNumber != null && phoneNumber.isNotEmpty) {
+            userData['phoneNumber'] = phoneNumber;
+          }
+
+          if (!userDoc.exists) {
+            // Yeni döküman oluştur
+            userData['createdAt'] = FieldValue.serverTimestamp();
+            await userDocRef.set(userData);
+            print('Yeni kullanıcı dökümanı oluşturuldu: $userData');
+          } else {
+            // Varolan dökümanı güncelle
+            await userDocRef.set(userData, SetOptions(merge: true));
+            print('Mevcut kullanıcı dökümanı güncellendi: $userData');
+          }
+
+          // Doğrulama için tekrar oku
+          final updatedDoc = await userDocRef.get();
+          print('Kaydedilen döküman: ${updatedDoc.data()}');
 
           // Firebase Auth profilini güncellemeyi dene
           // Anonim kullanıcılarda sorun oluşturduğu için bu işlemi es geçiyoruz

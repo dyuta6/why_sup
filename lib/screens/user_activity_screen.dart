@@ -65,26 +65,33 @@ class _UserActivityScreenState extends State<UserActivityScreen>
   Future<void> _loadFollowingUsers() async {
     if (_auth.currentUser == null) return;
 
-    final followingDoc = await _firestore
-        .collection('following')
-        .doc(_auth.currentUser!.uid)
-        .get();
+    try {
+      final followingDoc = await _firestore
+          .collection('following')
+          .doc(_auth.currentUser!.uid)
+          .get();
 
-    if (followingDoc.exists) {
-      final following =
-          followingDoc.data()?['following'] as List<dynamic>? ?? [];
-      setState(() {
-        _followingUsers = following.map((e) => e.toString()).toSet();
-      });
+      if (followingDoc.exists) {
+        final following =
+            followingDoc.data()?['following'] as List<dynamic>? ?? [];
+        setState(() {
+          _followingUsers = following.map((e) => e.toString()).toSet();
+
+          // Stream'i güncelle
+          _updateFollowingStream();
+        });
+
+        print('Takip listesi güncellendi: ${_followingUsers.length} kullanıcı');
+      } else {
+        // Boş kayıt, boş takip listesi
+        setState(() {
+          _followingUsers = {};
+          _updateFollowingStream();
+        });
+      }
+    } catch (e) {
+      print('Takip listesi yüklenirken hata: $e');
     }
-
-    // Takip edilenlerin aktivitelerini dinle
-    _followingActivitiesStream = _firestore
-        .collection('user_activities')
-        .where('userId',
-            whereIn: _followingUsers.isEmpty ? [''] : _followingUsers.toList())
-        .orderBy('startTime', descending: true)
-        .snapshots();
   }
 
   Future<void> _loadUserNickname() async {
@@ -113,6 +120,19 @@ class _UserActivityScreenState extends State<UserActivityScreen>
     final followingRef =
         _firestore.collection('following').doc(_auth.currentUser!.uid);
 
+    // Boş username gelirse, kullanıcı ismini Firebase'den almaya çalışalım
+    if (username.isEmpty) {
+      try {
+        final userDoc = await _firestore.collection('users').doc(userId).get();
+        if (userDoc.exists) {
+          username = userDoc.data()?['nickname'] as String? ?? 'Kullanıcı';
+        }
+      } catch (e) {
+        print('Kullanıcı adı alınamadı: $e');
+        username = 'Kullanıcı';
+      }
+    }
+
     if (_followingUsers.contains(userId)) {
       // Takibi bırak
       await followingRef.update({
@@ -120,6 +140,9 @@ class _UserActivityScreenState extends State<UserActivityScreen>
       });
       setState(() {
         _followingUsers.remove(userId);
+
+        // Stream'i güncelle
+        _updateFollowingStream();
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -133,11 +156,17 @@ class _UserActivityScreenState extends State<UserActivityScreen>
       }, SetOptions(merge: true));
       setState(() {
         _followingUsers.add(userId);
+
+        // _followingActivitiesStream'i de anında güncelle
+        _updateFollowingStream();
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$username takip edilmeye başlandı')),
-        );
+        // Rehberden toplu ekleme sonrası SnackBar'ı göstermeyelim, zaten FollowingScreen'de gösteriliyor
+        if (username.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$username takip edilmeye başlandı')),
+          );
+        }
       }
     }
 
@@ -381,128 +410,141 @@ class _UserActivityScreenState extends State<UserActivityScreen>
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        drawer: Drawer(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              DrawerHeader(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.inversePrimary,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundImage: _profileImage != null
-                          ? MemoryImage(base64Decode(_profileImage!))
-                          : null,
-                      child: _profileImage == null
-                          ? const Icon(Icons.person, size: 35)
-                          : null,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      _userNickname ?? localizations.welcome,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+    // Özel notification'ları dinle - FollowingScreen'den gelecek güncelleme bildirimlerini yakala
+    return NotificationListener<Notification>(
+      onNotification: (notification) {
+        // _RefreshFollowingNotification türünde bir bildirim gelirse takip listesini güncelle
+        if (notification is Notification &&
+            notification.toString().contains('RefreshFollowing')) {
+          print('Takip listesi güncellemesi bildirimi alındı');
+          _loadFollowingUsers();
+          return true; // Bildirimi işledik
+        }
+        return false; // Bildirimi işlemedik, üst widget'a iletle
+      },
+      child: DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          drawer: Drawer(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                DrawerHeader(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.inversePrimary,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundImage: _profileImage != null
+                            ? MemoryImage(base64Decode(_profileImage!))
+                            : null,
+                        child: _profileImage == null
+                            ? const Icon(Icons.person, size: 35)
+                            : null,
                       ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      _auth.currentUser?.isAnonymous ?? false
-                          ? localizations.anonymousLoginTitle
-                          : localizations.phoneLoginTitle,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ],
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.person_outline),
-                title: Text(localizations.profile),
-                onTap: () {
-                  // Profil sayfasına yönlendirme
-                  Navigator.pop(context); // Drawer'ı kapat
-
-                  if (_auth.currentUser != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => UserProfileScreen(
-                          userId: _auth.currentUser!.uid,
-                          username: _userNickname ?? localizations.welcome,
-                          isFollowing: false, // Kendimizi takip edemeyiz
-                          onToggleFollow: _toggleFollow,
+                      const SizedBox(height: 10),
+                      Text(
+                        _userNickname ?? localizations.welcome,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    );
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.visibility),
-                title: Text(localizations.profileVisibility),
-                trailing: Switch(
-                  value: _profileVisibilityEnabled,
-                  onChanged: _toggleProfileVisibility,
-                  activeColor: Theme.of(context).colorScheme.primary,
+                      const SizedBox(height: 5),
+                      Text(
+                        _auth.currentUser?.isAnonymous ?? false
+                            ? localizations.anonymousLoginTitle
+                            : localizations.phoneLoginTitle,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
                 ),
-                onTap: () {
-                  // ListTile'a tıklandığında da switch'i değiştir
-                  _toggleProfileVisibility(!_profileVisibilityEnabled);
-                },
+                ListTile(
+                  leading: const Icon(Icons.person_outline),
+                  title: Text(localizations.profile),
+                  onTap: () {
+                    // Profil sayfasına yönlendirme
+                    Navigator.pop(context); // Drawer'ı kapat
+
+                    if (_auth.currentUser != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserProfileScreen(
+                            userId: _auth.currentUser!.uid,
+                            username: _userNickname ?? localizations.welcome,
+                            isFollowing: false, // Kendimizi takip edemeyiz
+                            onToggleFollow: _toggleFollow,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.visibility),
+                  title: Text(localizations.profileVisibility),
+                  trailing: Switch(
+                    value: _profileVisibilityEnabled,
+                    onChanged: _toggleProfileVisibility,
+                    activeColor: Theme.of(context).colorScheme.primary,
+                  ),
+                  onTap: () {
+                    // ListTile'a tıklandığında da switch'i değiştir
+                    _toggleProfileVisibility(!_profileVisibilityEnabled);
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: Text(localizations.logoutButton,
+                      style: const TextStyle(color: Colors.red)),
+                  onTap: () async {
+                    await _logout();
+                  },
+                ),
+              ],
+            ),
+          ),
+          appBar: AppBar(
+            leading: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(context).openDrawer(),
               ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: Text(localizations.logoutButton,
-                    style: const TextStyle(color: Colors.red)),
-                onTap: () async {
-                  await _logout();
-                },
+            ),
+            title: Text(localizations.appTitle),
+            centerTitle: true,
+            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+            bottom: TabBar(
+              tabs: [
+                Tab(text: localizations.allActivities),
+                Tab(text: localizations.followingActivities),
+              ],
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.logout),
+                onPressed: _logout,
               ),
             ],
           ),
-        ),
-        appBar: AppBar(
-          leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
-          ),
-          title: Text(localizations.appTitle),
-          centerTitle: true,
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          bottom: TabBar(
-            tabs: [
-              Tab(text: localizations.allActivities),
-              Tab(text: localizations.followingActivities),
+          body: TabBarView(
+            children: [
+              // Herkes sekmesi
+              _buildActivityList(_allActivitiesStream),
+              // Takip edilenler sekmesi
+              FollowingScreen(
+                activitiesStream: _followingActivitiesStream,
+                followingUsers: _followingUsers,
+                onToggleFollow: _toggleFollow,
+              ),
             ],
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: _logout,
-            ),
-          ],
-        ),
-        body: TabBarView(
-          children: [
-            // Herkes sekmesi
-            _buildActivityList(_allActivitiesStream),
-            // Takip edilenler sekmesi
-            FollowingScreen(
-              activitiesStream: _followingActivitiesStream,
-              followingUsers: _followingUsers,
-              onToggleFollow: _toggleFollow,
-            ),
-          ],
         ),
       ),
     );
@@ -662,6 +704,17 @@ class _UserActivityScreenState extends State<UserActivityScreen>
     } catch (e) {
       print('Profil görünürlük bilgisi yüklenirken hata: $e');
     }
+  }
+
+  void _updateFollowingStream() {
+    // _followingActivitiesStream'i güncellemek için gerekli işlemler burada yapılabilir
+    // Bu örnekte, _followingActivitiesStream'i yeniden oluşturmak yeterlidir
+    _followingActivitiesStream = _firestore
+        .collection('user_activities')
+        .where('userId',
+            whereIn: _followingUsers.isEmpty ? [''] : _followingUsers.toList())
+        .orderBy('startTime', descending: true)
+        .snapshots();
   }
 }
 
