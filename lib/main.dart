@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'WhySup',
+      title: 'Online',
       // Localization desteği ekle
       localizationsDelegates: const [
         AppLocalizations.delegate,

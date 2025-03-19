@@ -1,13 +1,13 @@
 {
   "@@locale": "tr",
   
-  "appTitle": "WhySup",
+  "appTitle": "Online",
   "welcome": "Hoş Geldiniz",
   
-  "phoneLoginTitle": "Telefon Numarası ile Giriş",
+  "phoneLoginTitle": "Telefon ile Giriş",
   "phoneNumberLabel": "Telefon Numarası",
-  "phoneNumberHint": "5XX XXX XX XX",
-  "phoneNumberHelper": "Örnek: 5XX XXX XX XX (başında 0 olmadan)",
+  "phoneNumberHint": "+XX XXX XXX XX XX",
+  "phoneNumberHelper": "Lütfen ülke kodu ile birlikte telefon numaranızı girin",
   "phoneLoginButton": "Telefon ile Giriş Yap",
   "phoneEmptyError": "Lütfen telefon numaranızı girin",
   
@@ -17,19 +17,19 @@
   "anonymousLoginDesc": "Telefon numarası vermeden anonim olarak giriş yapabilirsiniz.",
   "anonymousLoginButton": "Anonim Olarak Giriş Yap",
   
-  "smsDialogTitle": "SMS Kodunu Girin",
+  "smsDialogTitle": "SMS Doğrulama",
   "smsCodeLabel": "SMS Kodu",
   "cancelButton": "İptal",
   "verifyButton": "Doğrula",
   "smsEmptyError": "Lütfen SMS kodunu girin",
-  "verificationIdMissingError": "Doğrulama kimliği eksik. Lütfen tekrar deneyin.",
+  "verificationIdMissingError": "Doğrulama kodu eksik",
   
-  "invalidSmsCodeError": "Geçersiz SMS kodu. Lütfen tekrar deneyin.",
-  "invalidVerificationIdError": "Geçersiz doğrulama kimliği. Lütfen tekrar telefon numaranızı girin.",
+  "invalidSmsCodeError": "Geçersiz SMS kodu",
+  "invalidVerificationIdError": "Geçersiz doğrulama kodu",
   "genericError": "Bir hata oluştu",
-  "networkError": "İnternet bağlantınızı kontrol edin",
-  "anonymousLoginDisabledError": "Anonim giriş şu anda devre dışı",
-  "loginFailedError": "Giriş başarısız",
+  "networkError": "Ağ bağlantısı hatası",
+  "anonymousLoginDisabledError": "Anonim giriş devre dışı",
+  "loginFailedError": "Giriş başarısız oldu",
   
   "nicknameTitle": "Kullanıcı Adı Seçin",
   "nicknameLabel": "Kullanıcı Adı",
@@ -149,5 +149,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "invalidPhoneFormat": "Lütfen ülke kodu ile birlikte geçerli bir telefon numarası girin (örn: +1...)"
 } 

@@ -221,7 +221,7 @@ class _FollowingScreenState extends State<FollowingScreen> {
 
               if (activities.isEmpty) {
                 return Center(
-                  child: Text(localizations.noActivities),
+                  child: Text(localizations.noFollowing),
                 );
               }
 
@@ -521,25 +521,45 @@ class _FollowingScreenState extends State<FollowingScreen> {
 
           // Ekranı yenilemek için parent widget'a bildiriyoruz
           if (context.mounted) {
-            // _currentFollowingUsers'ı güncelleyelim ki ekran hemen yenilensin
-            setState(() {
-              // Önce yerel listeyi güncelle
-              _currentFollowingUsers.addAll(userIdsToFollow);
+            // Kullanıcıları users koleksiyonundaki following array'ine ekle
+            final userDocRef = FirebaseFirestore.instance
+                .collection('users')
+                .doc(currentUserId);
 
-              // Firestore verilerimizi yenilemek için işaret koy
-              _needsRefresh = true;
-            });
+            try {
+              // Kullanıcı dökümanını güncelle
+              await userDocRef.update({
+                'following': FieldValue.arrayUnion(userIdsToFollow.toList())
+              });
 
-            // UserActivityScreen'deki takip listesini de güncelleyelim
-            // widget.onToggleFollow metodunu her eklenen kullanıcı için çağıralım
-            for (String userId in userIdsToFollow) {
-              // Kullanıcı adını bilmediğimiz için boş string gönderiyoruz
-              // onToggleFollow metodunda sadece takip etme işlemi için kullanılacak
-              widget.onToggleFollow(userId, '');
+              // _currentFollowingUsers'ı güncelleyelim ki ekran hemen yenilensin
+              setState(() {
+                // Önce yerel listeyi güncelle
+                _currentFollowingUsers.addAll(userIdsToFollow);
+
+                // Firestore verilerimizi yenilemek için işaret koy
+                _needsRefresh = true;
+              });
+
+              // UserActivityScreen'deki takip listesini de güncelleyelim
+              // widget.onToggleFollow metodunu her eklenen kullanıcı için çağıralım
+              for (String userId in userIdsToFollow) {
+                // Kullanıcı adını bilmediğimiz için boş string gönderiyoruz
+                // onToggleFollow metodunda sadece takip etme işlemi için kullanılacak
+                widget.onToggleFollow(userId, '');
+              }
+
+              // Bilgi amaçlı log
+              print('Ana ekrana ${userIdsToFollow.length} kullanıcı eklendi');
+            } catch (e) {
+              print('Kullanıcılar eklenirken hata: $e');
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content: Text('Kullanıcılar eklenirken hata oluştu: $e')),
+                );
+              }
             }
-
-            // Bilgi amaçlı log
-            print('Ana ekrana ${userIdsToFollow.length} kullanıcı eklendi');
           }
         } else {
           // Eşleşen kişi yoksa özel mesaj göster
@@ -571,20 +591,12 @@ class _FollowingScreenState extends State<FollowingScreen> {
 
   // Telefon numarasını normalize etme (sadece rakamları al)
   String _normalizePhoneNumber(String phoneNumber) {
-    // Tüm boşlukları, parantezleri, tire ve artıları kaldır
-    final digitsOnly = phoneNumber.replaceAll(RegExp(r'[\s\-\(\)\+]'), '');
+    // Tüm boşlukları, parantezleri ve tireleri kaldır
+    final digitsOnly = phoneNumber.replaceAll(RegExp(r'[\s\-\(\)]'), '');
 
-    // Eğer Türkiye numarası ise başındaki "0" silip "+90" ekleyebilirsin
-    if (digitsOnly.startsWith('0') && digitsOnly.length == 11) {
-      return "+90${digitsOnly.substring(1)}";
-    }
-    // Başında ülke kodu yoksa ve 10 haneliyse Türkiye numarası olarak kabul et
-    else if (digitsOnly.length == 10 && !digitsOnly.startsWith('+')) {
-      return "+90$digitsOnly";
-    }
-    // Başında "+" yoksa ekle
-    else if (!digitsOnly.startsWith('+')) {
-      return "+$digitsOnly";
+    // Eğer + ile başlamıyorsa ve başka bir + işareti varsa, ilk + işaretine kadar olan kısmı al
+    if (!digitsOnly.startsWith('+') && digitsOnly.contains('+')) {
+      return digitsOnly.substring(digitsOnly.indexOf('+'));
     }
 
     return digitsOnly;

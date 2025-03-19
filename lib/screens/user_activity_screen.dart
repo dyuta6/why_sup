@@ -66,14 +66,13 @@ class _UserActivityScreenState extends State<UserActivityScreen>
     if (_auth.currentUser == null) return;
 
     try {
-      final followingDoc = await _firestore
-          .collection('following')
+      final userDoc = await _firestore
+          .collection('users')
           .doc(_auth.currentUser!.uid)
           .get();
 
-      if (followingDoc.exists) {
-        final following =
-            followingDoc.data()?['following'] as List<dynamic>? ?? [];
+      if (userDoc.exists) {
+        final following = userDoc.data()?['following'] as List<dynamic>? ?? [];
         setState(() {
           _followingUsers = following.map((e) => e.toString()).toSet();
 
@@ -117,8 +116,8 @@ class _UserActivityScreenState extends State<UserActivityScreen>
   Future<void> _toggleFollow(String userId, String username) async {
     if (_auth.currentUser == null) return;
 
-    final followingRef =
-        _firestore.collection('following').doc(_auth.currentUser!.uid);
+    final userDocRef =
+        _firestore.collection('users').doc(_auth.currentUser!.uid);
 
     // Boş username gelirse, kullanıcı ismini Firebase'den almaya çalışalım
     if (username.isEmpty) {
@@ -135,7 +134,7 @@ class _UserActivityScreenState extends State<UserActivityScreen>
 
     if (_followingUsers.contains(userId)) {
       // Takibi bırak
-      await followingRef.update({
+      await userDocRef.update({
         'following': FieldValue.arrayRemove([userId])
       });
       setState(() {
@@ -151,13 +150,13 @@ class _UserActivityScreenState extends State<UserActivityScreen>
       }
     } else {
       // Takip et
-      await followingRef.set({
+      await userDocRef.update({
         'following': FieldValue.arrayUnion([userId])
-      }, SetOptions(merge: true));
+      });
       setState(() {
         _followingUsers.add(userId);
 
-        // _followingActivitiesStream'i de anında güncelle
+        // Stream'i güncelle
         _updateFollowingStream();
       });
       if (mounted) {
@@ -623,7 +622,7 @@ class _UserActivityScreenState extends State<UserActivityScreen>
 
             if (activities.isEmpty) {
               return Center(
-                child: Text('No activities shared yet'),
+                child: Text(localizations.noActivities),
               );
             }
 

@@ -37,14 +37,16 @@ class _LoginScreenState extends State<LoginScreen> {
     // Telefon numarasını E.164 formatına dönüştür
     String phoneNumber = _phoneController.text.trim();
 
-    // Eğer numara + ile başlamıyorsa ve Türkiye numarası ise
+    // Eğer numara + ile başlamıyorsa hata ver
     if (!phoneNumber.startsWith('+')) {
-      // Numara 0 ile başlıyorsa 0'ı kaldır
-      if (phoneNumber.startsWith('0')) {
-        phoneNumber = phoneNumber.substring(1);
-      }
-      // Türkiye ülke kodunu ekle
-      phoneNumber = '+90$phoneNumber';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(AppLocalizations.of(context)!.invalidPhoneFormat)),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+      return;
     }
 
     print('Doğrulama için kullanılacak telefon numarası: $phoneNumber');
@@ -514,8 +516,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _phoneController,
                         decoration: InputDecoration(
                           labelText: localizations.phoneNumberLabel,
-                          hintText: localizations.phoneNumberHint,
-                          prefixText: '+90 ',
                           border: const OutlineInputBorder(),
                           helperText: localizations.phoneNumberHelper,
                         ),

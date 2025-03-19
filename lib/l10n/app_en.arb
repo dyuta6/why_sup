@@ -1,13 +1,13 @@
 {
   "@@locale": "en",
   
-  "appTitle": "WhySup",
+  "appTitle": "Online",
   "welcome": "Welcome",
   
   "phoneLoginTitle": "Phone Login",
   "phoneNumberLabel": "Phone Number",
-  "phoneNumberHint": "5XX XXX XX XX",
-  "phoneNumberHelper": "Example: 5XX XXX XX XX (without 0 at the beginning)",
+  "phoneNumberHint": "+XX XXX XXX XX XX",
+  "phoneNumberHelper": "Please enter your phone number with country code",
   "phoneLoginButton": "Login with Phone",
   "phoneEmptyError": "Please enter your phone number",
   
@@ -17,18 +17,18 @@
   "anonymousLoginDesc": "You can login anonymously without providing a phone number.",
   "anonymousLoginButton": "Login Anonymously",
   
-  "smsDialogTitle": "Enter SMS Code",
+  "smsDialogTitle": "SMS Verification",
   "smsCodeLabel": "SMS Code",
   "cancelButton": "Cancel",
   "verifyButton": "Verify",
   "smsEmptyError": "Please enter the SMS code",
-  "verificationIdMissingError": "Verification ID is missing. Please try again.",
+  "verificationIdMissingError": "Verification code is missing",
   
-  "invalidSmsCodeError": "Invalid SMS code. Please try again.",
-  "invalidVerificationIdError": "Invalid verification ID. Please enter your phone number again.",
+  "invalidSmsCodeError": "Invalid SMS code",
+  "invalidVerificationIdError": "Invalid verification code",
   "genericError": "An error occurred",
-  "networkError": "Check your internet connection",
-  "anonymousLoginDisabledError": "Anonymous login is currently disabled",
+  "networkError": "Network connection error",
+  "anonymousLoginDisabledError": "Anonymous login is disabled",
   "loginFailedError": "Login failed",
   
   "nicknameTitle": "Choose a Nickname",
@@ -149,5 +149,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "invalidPhoneFormat": "Please enter a valid phone number with country code (e.g. +1...)"
 } 
