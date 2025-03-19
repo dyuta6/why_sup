@@ -50,6 +50,17 @@ class _LoginScreenState extends State<LoginScreen> {
     print('Doğrulama için kullanılacak telefon numarası: $phoneNumber');
 
     try {
+      // İşlem öncesi mevcut kullanıcı durumunu kontrol et
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        print(
+            'Aktif oturum var, önce çıkış yapılıyor. Aktif kullanıcı: ${currentUser.uid}');
+        await FirebaseAuth.instance.signOut();
+        // Oturumun kapanması için kısa bir bekleme süresi
+        await Future.delayed(const Duration(milliseconds: 500));
+        print('Çıkış yapıldı, telefon doğrulama başlatılıyor');
+      }
+
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         timeout: const Duration(seconds: 60),
@@ -149,16 +160,31 @@ class _LoginScreenState extends State<LoginScreen> {
           }
         },
         verificationFailed: (FirebaseAuthException e) {
-          print('Doğrulama başarısız: ${e.message}');
+          print('Doğrulama başarısız: ${e.code} - ${e.message}');
           setState(() {
             _isLoading = false;
           });
 
+          String errorMessage = AppLocalizations.of(context)!.loginFailedError;
+          switch (e.code) {
+            case 'invalid-phone-number':
+              errorMessage = 'Geçersiz telefon numarası formatı';
+              break;
+            case 'too-many-requests':
+              errorMessage =
+                  'Çok fazla giriş denemesi yapıldı, lütfen daha sonra tekrar deneyin';
+              break;
+            case 'app-not-authorized':
+              errorMessage =
+                  'Uygulama telefon doğrulama için yetkilendirilmemiş';
+              break;
+            default:
+              errorMessage =
+                  e.message ?? AppLocalizations.of(context)!.loginFailedError;
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  e.message ?? AppLocalizations.of(context)!.loginFailedError),
-            ),
+            SnackBar(content: Text(errorMessage)),
           );
         },
         codeSent: (String verificationId, int? resendToken) {
@@ -220,6 +246,15 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       print(
           'SMS kodu doğrulanıyor: $smsCode için verificationId: $_verificationId');
+
+      // Aktif oturum kontrolü
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        print(
+            'SMS doğrulama: Aktif oturum bulundu, çıkış yapılıyor: ${currentUser.uid}');
+        await FirebaseAuth.instance.signOut();
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
 
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
         verificationId: _verificationId!,
@@ -298,6 +333,7 @@ class _LoginScreenState extends State<LoginScreen> {
       String errorMessage = AppLocalizations.of(context)!.loginFailedError;
 
       if (e is FirebaseAuthException) {
+        print('FirebaseAuthException kodu: ${e.code}');
         switch (e.code) {
           case 'invalid-verification-code':
             errorMessage = AppLocalizations.of(context)!.invalidSmsCodeError;
@@ -305,6 +341,12 @@ class _LoginScreenState extends State<LoginScreen> {
           case 'invalid-verification-id':
             errorMessage =
                 AppLocalizations.of(context)!.invalidVerificationIdError;
+            break;
+          case 'session-expired':
+            errorMessage = 'Doğrulama süresi doldu, lütfen tekrar deneyin';
+            break;
+          case 'user-disabled':
+            errorMessage = 'Bu kullanıcı hesabı devre dışı bırakılmış';
             break;
           default:
             errorMessage =

@@ -388,14 +388,10 @@ class _UserActivityScreenState extends State<UserActivityScreen>
 
   Future<void> _logout() async {
     try {
-      await _auth.signOut();
-
+      // Firebase çıkışı yapmadan direkt uygulamayı kapat
       if (mounted) {
-        // Tüm sayfaları temizle ve login ekranına yönlendir
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-          (route) => false,
-        );
+        // SystemNavigator.pop() ile uygulamayı kapat
+        SystemNavigator.pop();
       }
     } catch (e) {
       if (mounted) {
