@@ -150,5 +150,11 @@
       }
     }
   },
-  "invalidPhoneFormat": "Lütfen ülke kodu ile birlikte geçerli bir telefon numarası girin (örn: +1...)"
+  "invalidPhoneFormat": "Lütfen ülke kodu ile birlikte geçerli bir telefon numarası girin (örn: +1...)",
+  "searchHint": "Kullanıcı adı veya telefon numarası ile ara",
+  "hiddenProfileMessage": "Profiliniz gizli olduğu için\ndiğer kullanıcıların aktiviteleri gizlenmiştir",
+  "profilePublic": "Profiliniz herkese açık",
+  "profilePrivate": "Profiliniz gizli",
+  "followStarted": "takip edilmeye başlandı",
+  "followStopped": "takipten çıkarıldı"
 } 

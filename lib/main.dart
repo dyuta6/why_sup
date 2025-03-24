@@ -21,14 +21,10 @@ void main() async {
   final deviceLocale = WidgetsBinding.instance.platformDispatcher.locale;
   final languageCode = deviceLocale.languageCode;
 
-  // Desteklenen diller listesi
-  const supportedLanguages = ['en', 'tr'];
-
-  // Cihaz dili desteklenen diller listesinde var mı kontrol et
-  if (supportedLanguages.contains(languageCode)) {
-    FirebaseAuth.instance.setLanguageCode(languageCode);
+  // Sadece Türkçe için yerel dili kullan, diğer tüm diller için İngilizce
+  if (languageCode == 'tr') {
+    FirebaseAuth.instance.setLanguageCode('tr');
   } else {
-    // Varsayılan olarak İngilizce kullan
     FirebaseAuth.instance.setLanguageCode('en');
   }
 
@@ -133,15 +129,12 @@ class MyApp extends StatelessWidget {
     final deviceLocale = WidgetsBinding.instance.platformDispatcher.locale;
     final languageCode = deviceLocale.languageCode;
 
-    // Desteklenen diller listesi
-    const supportedLanguages = ['en', 'tr'];
-
-    // Cihaz dili desteklenen diller listesinde var mı kontrol et
-    if (supportedLanguages.contains(languageCode)) {
-      return Locale(languageCode);
+    // Sadece Türkçe için yerel dili kullan, diğer tüm diller için İngilizce
+    if (languageCode == 'tr') {
+      return const Locale('tr');
     }
 
-    // Desteklenmeyen diller için varsayılan olarak İngilizce kullan
+    // Türkçe dışındaki tüm diller için İngilizce kullan
     return const Locale('en');
   }
 }

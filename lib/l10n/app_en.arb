@@ -150,5 +150,11 @@
       }
     }
   },
-  "invalidPhoneFormat": "Please enter a valid phone number with country code (e.g. +1...)"
+  "invalidPhoneFormat": "Please enter a valid phone number with country code (e.g. +1...)",
+  "searchHint": "Search by username or phone number",
+  "hiddenProfileMessage": "Since your profile is hidden,\nother users' activities are hidden",
+  "profilePublic": "Your profile is public",
+  "profilePrivate": "Your profile is private",
+  "followStarted": "is now being followed",
+  "followStopped": "is no longer being followed"
 } 

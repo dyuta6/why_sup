@@ -5,9 +5,9 @@
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     
     <application
-        android:label="why_sup"
+        android:label="Online"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/icon">
         <activity
             android:name=".MainActivity"
             android:exported="true"

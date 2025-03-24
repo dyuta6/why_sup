@@ -33,6 +33,9 @@ class _UserActivityScreenState extends State<UserActivityScreen>
   static const platform = MethodChannel('com.example.why_sup/usage_stats');
   bool _hasShownPermissionDialog = false;
   bool _profileVisibilityEnabled = true;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  bool _isSearchingByPhone = false;
 
   @override
   void initState() {
@@ -144,8 +147,9 @@ class _UserActivityScreenState extends State<UserActivityScreen>
         _updateFollowingStream();
       });
       if (mounted) {
+        final localizations = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$username takipten çıkarıldı')),
+          SnackBar(content: Text('$username ${localizations.followStopped}')),
         );
       }
     } else {
@@ -160,12 +164,10 @@ class _UserActivityScreenState extends State<UserActivityScreen>
         _updateFollowingStream();
       });
       if (mounted) {
-        // Rehberden toplu ekleme sonrası SnackBar'ı göstermeyelim, zaten FollowingScreen'de gösteriliyor
-        if (username.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$username takip edilmeye başlandı')),
-          );
-        }
+        final localizations = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$username ${localizations.followStarted}')),
+        );
       }
     }
 
@@ -190,11 +192,12 @@ class _UserActivityScreenState extends State<UserActivityScreen>
 
         // Kullanıcıya bilgi ver
         if (mounted) {
+          final localizations = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(_profileVisibilityEnabled
-                  ? 'Profiliniz herkese açık'
-                  : 'Profiliniz gizli'),
+                  ? localizations.profilePublic
+                  : localizations.profilePrivate),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -216,6 +219,7 @@ class _UserActivityScreenState extends State<UserActivityScreen>
 
   @override
   void dispose() {
+    _searchController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _usageCheckTimer?.cancel();
     super.dispose();
@@ -545,104 +549,200 @@ class _UserActivityScreenState extends State<UserActivityScreen>
     );
   }
 
+  Widget _buildSearchBar() {
+    final localizations = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: localizations.searchHint,
+          prefixIcon: const Icon(Icons.search),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                )
+              : null,
+        ),
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value.toLowerCase(); // Küçük harfe çevir
+          });
+        },
+      ),
+    );
+  }
+
   Widget _buildActivityList(Stream<QuerySnapshot>? stream) {
     final localizations = AppLocalizations.of(context)!;
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: stream,
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text('Bir hata oluştu: ${snapshot.error}'));
-        }
+    // Eğer kullanıcının görünürlüğü kapalıysa, hiçbir aktivite gösterme
+    if (!_profileVisibilityEnabled) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.visibility_off, size: 48, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              localizations.hiddenProfileMessage,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        // Aktiviteleri kullanıcı başına grupla
-        final Map<String, ActivityItem> latestActivities = {};
-
-        // Kendi uygulamamızın paket adı - bu gözükmeyecek
-        const String ourAppPackage = "com.example.why_sup";
-
-        // Mevcut kullanıcının ID'si - kendi aktivitelerimizi filtrelemek için
-        final String? currentUserId = _auth.currentUser?.uid;
-
-        // Gösterilecek aktiviteleri işle
-        return FutureBuilder<Map<String, bool>>(
-          future: _getUserVisibilityMap(snapshot.data!.docs),
-          builder: (context, visibilitySnapshot) {
-            // Görünürlük verisi henüz yüklenmemişse
-            if (!visibilitySnapshot.hasData ||
-                visibilitySnapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            final visibilityMap = visibilitySnapshot.data!;
-            final List<ActivityItem> visibleActivities = [];
-
-            for (var doc in snapshot.data!.docs) {
-              final data = doc.data() as Map<String, dynamic>;
-              final userId = data['userId'] as String;
-              final timestamp = data['startTime'] as Timestamp?;
-              final packageName = data['packageName'] as String? ?? '';
-
-              // Kendi uygulamamızı veya kendi aktivitelerimizi filtreleme
-              if (packageName == ourAppPackage || userId == currentUserId) {
-                continue; // Bu aktiviteyi atla
+    return Column(
+      children: [
+        _buildSearchBar(),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: stream,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                    child: Text('Bir hata oluştu: ${snapshot.error}'));
               }
 
-              // Kullanıcının görünürlük durumunu kontrol et
-              final isVisible =
-                  visibilityMap[userId] ?? true; // Varsayılan olarak görünür
-              if (!isVisible) {
-                continue; // Görünürlüğü kapalı olan kullanıcıları atla
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
               }
 
-              // Eğer bu kullanıcının aktivitesi daha önce eklenmemişse veya
-              // bu aktivite daha yeniyse, map'i güncelle
-              if (!latestActivities.containsKey(userId) ||
-                  (timestamp != null &&
-                      timestamp
-                          .toDate()
-                          .isAfter(latestActivities[userId]!.startTime))) {
-                latestActivities[userId] = ActivityItem(
-                  username: data['username'] ?? 'Anonim',
-                  appName: data['appName'] ?? 'Bilinmeyen Uygulama',
-                  packageName: packageName,
-                  startTime: timestamp?.toDate() ?? DateTime.now(),
-                  userId: userId,
+              // Aktiviteleri kullanıcı başına grupla
+              final Map<String, ActivityItem> latestActivities = {};
+
+              // Kendi uygulamamızın paket adı - bu gözükmeyecek
+              const String ourAppPackage = "com.example.why_sup";
+
+              // Mevcut kullanıcının ID'si - kendi aktivitelerimizi filtrelemek için
+              final String? currentUserId = _auth.currentUser?.uid;
+
+              for (var doc in snapshot.data!.docs) {
+                final data = doc.data() as Map<String, dynamic>;
+                final userId = data['userId'] as String;
+                final timestamp = data['startTime'] as Timestamp?;
+                final packageName = data['packageName'] as String? ?? '';
+                final username = data['username'] as String? ?? 'Anonim';
+
+                // Kendi uygulamamızı veya kendi aktivitelerimizi filtreleme
+                if (packageName == ourAppPackage || userId == currentUserId) {
+                  continue;
+                }
+
+                if (!latestActivities.containsKey(userId) ||
+                    (timestamp != null &&
+                        timestamp
+                            .toDate()
+                            .isAfter(latestActivities[userId]!.startTime))) {
+                  latestActivities[userId] = ActivityItem(
+                    username: username,
+                    appName: data['appName'] ?? 'Bilinmeyen Uygulama',
+                    packageName: packageName,
+                    startTime: timestamp?.toDate() ?? DateTime.now(),
+                    userId: userId,
+                  );
+                }
+              }
+
+              final activities = latestActivities.values.toList()
+                ..sort((a, b) => b.startTime.compareTo(a.startTime));
+
+              if (activities.isEmpty) {
+                return Center(
+                  child: Text(localizations.noActivities),
                 );
               }
-            }
 
-            // Map'teki değerleri listeye çevir ve zamanına göre sırala
-            final activities = latestActivities.values.toList()
-              ..sort((a, b) => b.startTime.compareTo(a.startTime));
+              if (_searchQuery.isEmpty) {
+                return _buildActivityListView(activities);
+              }
 
-            if (activities.isEmpty) {
-              return Center(
-                child: Text(localizations.noActivities),
+              // Arama yapılıyorsa, telefon numaralarını kontrol et
+              return FutureBuilder<List<ActivityItem>>(
+                future: _filterActivitiesBySearch(activities),
+                builder: (context, searchSnapshot) {
+                  if (searchSnapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (searchSnapshot.hasError) {
+                    return Center(
+                        child: Text(
+                            'Arama sırasında hata oluştu: ${searchSnapshot.error}'));
+                  }
+
+                  final filteredActivities = searchSnapshot.data ?? [];
+
+                  if (filteredActivities.isEmpty) {
+                    return const Center(child: Text('Arama sonucu bulunamadı'));
+                  }
+
+                  return _buildActivityListView(filteredActivities);
+                },
               );
-            }
+            },
+          ),
+        ),
+      ],
+    );
+  }
 
-            return ListView.builder(
-              itemCount: activities.length,
-              itemBuilder: (context, index) {
-                final activity = activities[index];
-                final isFollowing = _followingUsers.contains(activity.userId);
+  Widget _buildActivityListView(List<ActivityItem> activities) {
+    return ListView.builder(
+      itemCount: activities.length,
+      itemBuilder: (context, index) {
+        final activity = activities[index];
+        final isFollowing = _followingUsers.contains(activity.userId);
 
-                return ActivityCard(
-                  activity: activity,
-                  isFollowing: isFollowing,
-                  onToggleFollow: _toggleFollow,
-                );
-              },
-            );
-          },
+        return ActivityCard(
+          activity: activity,
+          isFollowing: isFollowing,
+          onToggleFollow: _toggleFollow,
         );
       },
     );
+  }
+
+  Future<List<ActivityItem>> _filterActivitiesBySearch(
+      List<ActivityItem> activities) async {
+    final List<ActivityItem> filteredActivities = [];
+
+    for (var activity in activities) {
+      bool matchesSearch =
+          activity.username.toLowerCase().contains(_searchQuery.toLowerCase());
+
+      if (!matchesSearch) {
+        try {
+          final userDoc =
+              await _firestore.collection('users').doc(activity.userId).get();
+          if (userDoc.exists) {
+            final phoneNumber = userDoc.data()?['phoneNumber'] as String? ?? '';
+            matchesSearch =
+                phoneNumber.toLowerCase().contains(_searchQuery.toLowerCase());
+          }
+        } catch (e) {
+          print('Telefon numarası kontrolünde hata: $e');
+        }
+      }
+
+      if (matchesSearch) {
+        filteredActivities.add(activity);
+      }
+    }
+
+    return filteredActivities;
   }
 
   // Kullanıcıların görünürlük durumlarını toplu olarak sorgula
@@ -710,6 +810,51 @@ class _UserActivityScreenState extends State<UserActivityScreen>
             whereIn: _followingUsers.isEmpty ? [''] : _followingUsers.toList())
         .orderBy('startTime', descending: true)
         .snapshots();
+  }
+
+  // Kullanıcı araması için yeni fonksiyon
+  Future<List<String>> _searchUsers(String query) async {
+    if (query.isEmpty) return [];
+
+    try {
+      QuerySnapshot querySnapshot;
+      if (query.startsWith('phonenumber:')) {
+        // Telefon numarasına göre ara
+        String phoneQuery = query.substring('phonenumber:'.length).trim();
+        if (phoneQuery.isEmpty) return [];
+
+        querySnapshot = await _firestore
+            .collection('users')
+            .where('phoneNumber', isEqualTo: phoneQuery)
+            .get();
+      } else if (query.startsWith('nickname:')) {
+        // Kullanıcı adına göre ara
+        String nicknameQuery =
+            query.substring('nickname:'.length).trim().toLowerCase();
+        if (nicknameQuery.isEmpty) return [];
+
+        querySnapshot = await _firestore
+            .collection('users')
+            .orderBy('nickname')
+            .startAt([nicknameQuery]).endAt([nicknameQuery + '\uf8ff']).get();
+      } else {
+        // Varsayılan olarak kullanıcı adına göre ara
+        querySnapshot = await _firestore
+            .collection('users')
+            .orderBy('nickname')
+            .startAt([query]).endAt([query + '\uf8ff']).get();
+      }
+
+      print('Arama sonucu: ${querySnapshot.docs.length} kullanıcı bulundu');
+      for (var doc in querySnapshot.docs) {
+        print('Bulunan kullanıcı: ${doc.data()}');
+      }
+
+      return querySnapshot.docs.map((doc) => doc.id).toList();
+    } catch (e) {
+      print('Kullanıcı araması sırasında hata: $e');
+      return [];
+    }
   }
 }
 
@@ -802,7 +947,7 @@ class _ActivityCardState extends State<ActivityCard> {
         });
       }
     } catch (e) {
-      print('Profil resmi yüklenirken hata: $e');
+      print('Kullanıcı bilgileri yüklenirken hata: $e');
     }
   }
 
